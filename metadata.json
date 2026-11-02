@@ -1,0 +1,6 @@
+{
+  "name": "Portal Aset & Akun Syamanah",
+  "description": "Aplikasi manajemen dan input data spesifikasi perangkat PC, inventaris akun sales, media sosial, dan aset handphone Syamanah terintegrasi Google Spreadsheet.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

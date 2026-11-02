@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "SubmissionRecord": {
+      "title": "SubmissionRecord",
+      "description": "Record inventaris perangkat PC/Laptop atau Akun Sales Syamanah",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["pc", "akun"] },
+        "timestamp": { "type": "string" },
+        "syncedToGoogle": { "type": "boolean" },
+        "syncMessage": { "type": "string" },
+        "drivePhotoUrl": { "type": "string" },
+        "data": { "type": "object" }
+      },
+      "required": ["id", "type", "timestamp", "data"]
+    },
+    "MikrotikAccount": {
+      "title": "MikrotikAccount",
+      "description": "Akun MikroTik Hotspot sales dan staf Syamanah",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "namaPemilik": { "type": "string" },
+        "tim": { "type": "string" },
+        "jabatan": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "profileHotspot": { "type": "string" },
+        "rateLimit": { "type": "string" },
+        "status": { "type": "string", "enum": ["aktif", "nonaktif", "suspend"] },
+        "commandTerminal": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "namaPemilik", "username", "password"]
+    }
+  },
+  "firestore": {
+    "/submissions/{id}": {
+      "schema": { "$ref": "#/entities/SubmissionRecord" },
+      "description": "Koleksi data inventaris PC, laptop, dan akun sales"
+    },
+    "/mikrotik/{id}": {
+      "schema": { "$ref": "#/entities/MikrotikAccount" },
+      "description": "Koleksi data akun MikroTik hotspot kantor"
+    }
+  }
+}
