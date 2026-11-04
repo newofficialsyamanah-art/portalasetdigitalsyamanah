@@ -22,7 +22,7 @@ import {
   PhoneCall,
   Link2
 } from 'lucide-react';
-import { SubmissionRecord, FormPC, FormAkun, MikrotikAccount } from '../types';
+import { SubmissionRecord, FormPC, FormAkun, MikrotikAccount, UserAccount } from '../types';
 import {
   deleteSubmission,
   pullDataFromGoogleSpreadsheet,
@@ -45,6 +45,7 @@ interface SpreadsheetViewProps {
   onOpenSettings: () => void;
   onOpenImportModal: () => void;
   initialSheet?: 'pc' | 'akun' | 'mikrotik';
+  currentUser?: UserAccount | null;
 }
 
 export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
@@ -56,8 +57,10 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
   onOpenMikrotikForm,
   onOpenSettings,
   onOpenImportModal,
-  initialSheet = 'pc'
+  initialSheet = 'pc',
+  currentUser
 }) => {
+  const isGA = currentUser?.role === 'general_affair';
   const [activeSheet, setActiveSheet] = useState<'pc' | 'akun' | 'mikrotik'>(initialSheet);
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
@@ -411,7 +414,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
           {activeSheet === 'pc' && (
             <button
               onClick={onOpenPcForm}
-              className="px-3.5 py-2 bg-[#0B1B3D] hover:bg-[#132A5E] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
+              className="px-3.5 py-2 bg-[#0F1D2E] hover:bg-[#163654] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
             >
               <PlusCircle className="w-3.5 h-3.5 text-amber-400" />
               <span>Tambah PC</span>
@@ -421,7 +424,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
           {activeSheet === 'akun' && (
             <button
               onClick={onOpenAkunForm}
-              className="px-3.5 py-2 bg-[#0B1B3D] hover:bg-[#132A5E] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
+              className="px-3.5 py-2 bg-[#0F1D2E] hover:bg-[#163654] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
             >
               <PlusCircle className="w-3.5 h-3.5 text-amber-400" />
               <span>Tambah Akun</span>
@@ -431,7 +434,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
           {activeSheet === 'mikrotik' && (
             <button
               onClick={onOpenMikrotikForm}
-              className="px-3.5 py-2 bg-[#0B1B3D] hover:bg-[#132A5E] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
+              className="px-3.5 py-2 bg-[#0F1D2E] hover:bg-[#163654] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
             >
               <PlusCircle className="w-3.5 h-3.5 text-amber-400" />
               <span>Tambah MikroTik</span>
@@ -457,7 +460,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
             }}
             className={`px-3 py-2.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition shrink-0 ${
               activeSheet === 'pc'
-                ? 'border-amber-500 text-slate-900'
+                ? 'border-[#3A7D8A] text-[#0F1D2E] font-bold'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -465,7 +468,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
             <span>Spesifikasi Laptop &amp; PC</span>
             <span
               className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                activeSheet === 'pc' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-600'
+                activeSheet === 'pc' ? 'bg-teal-50 text-[#3A7D8A]' : 'bg-slate-100 text-slate-600'
               }`}
             >
               {pcRecords.length}
@@ -479,7 +482,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
             }}
             className={`px-3 py-2.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition shrink-0 ${
               activeSheet === 'akun'
-                ? 'border-amber-500 text-slate-900'
+                ? 'border-[#3A7D8A] text-[#0F1D2E] font-bold'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -487,7 +490,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
             <span>Akun Sales 2026</span>
             <span
               className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                activeSheet === 'akun' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-600'
+                activeSheet === 'akun' ? 'bg-teal-50 text-[#3A7D8A]' : 'bg-slate-100 text-slate-600'
               }`}
             >
               {akunRecords.length}
@@ -501,7 +504,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
             }}
             className={`px-3 py-2.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition shrink-0 ${
               activeSheet === 'mikrotik'
-                ? 'border-amber-500 text-slate-900'
+                ? 'border-[#3A7D8A] text-[#0F1D2E] font-bold'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -509,7 +512,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
             <span>Akun MikroTik</span>
             <span
               className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                activeSheet === 'mikrotik' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-600'
+                activeSheet === 'mikrotik' ? 'bg-teal-50 text-[#3A7D8A]' : 'bg-slate-100 text-slate-600'
               }`}
             >
               {mikrotikAccounts.length}
@@ -648,7 +651,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
                           {d.ip || '-'}
                         </td>
                         <td className="px-3 py-3 text-slate-500 border-r border-slate-100">
-                          {d.passwordPc || '-'}
+                          {isGA ? '•••••••• (GA)' : (d.passwordPc || '-')}
                         </td>
                         <td className="px-3.5 py-3 text-slate-700 border-r border-slate-100 whitespace-nowrap">
                           {d.os || '-'}
@@ -825,10 +828,10 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
                         <td className="px-4 py-3 border-r border-slate-100 whitespace-nowrap">
                           {d.email1 ? (
                             <div>
-                              <div className="font-semibold text-slate-800">{d.email1}</div>
+                              <div className="font-semibold text-slate-800">{isGA ? '•••••••• (GA)' : d.email1}</div>
                               {d.passEmail1 && (
                                 <div className="text-[10px] text-slate-400 font-mono">
-                                  pass: {d.passEmail1}
+                                  pass: {isGA ? '••••••••' : d.passEmail1}
                                 </div>
                               )}
                             </div>
@@ -839,10 +842,10 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
                         <td className="px-4 py-3 border-r border-slate-100 whitespace-nowrap">
                           {d.email2 ? (
                             <div>
-                              <div className="font-semibold text-slate-800">{d.email2}</div>
+                              <div className="font-semibold text-slate-800">{isGA ? '•••••••• (GA)' : d.email2}</div>
                               {d.passEmail2 && (
                                 <div className="text-[10px] text-slate-400 font-mono">
-                                  pass: {d.passEmail2}
+                                  pass: {isGA ? '••••••••' : d.passEmail2}
                                 </div>
                               )}
                             </div>
@@ -853,10 +856,10 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
                         <td className="px-4 py-3 border-r border-slate-100 whitespace-nowrap">
                           {d.ig1 ? (
                             <div>
-                              <div className="font-semibold text-pink-700">@{d.ig1}</div>
+                              <div className="font-semibold text-pink-700">{isGA ? '•••••••• (GA)' : `@${d.ig1}`}</div>
                               {d.passIg1 && (
                                 <div className="text-[10px] text-slate-400 font-mono">
-                                  pass: {d.passIg1}
+                                  pass: {isGA ? '••••••••' : d.passIg1}
                                 </div>
                               )}
                             </div>
@@ -867,10 +870,10 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
                         <td className="px-4 py-3 border-r border-slate-100 whitespace-nowrap">
                           {d.fb1 ? (
                             <div>
-                              <div className="font-semibold text-blue-700">{d.fb1}</div>
+                              <div className="font-semibold text-blue-700">{isGA ? '•••••••• (GA)' : d.fb1}</div>
                               {d.passFb1 && (
                                 <div className="text-[10px] text-slate-400 font-mono">
-                                  pass: {d.passFb1}
+                                  pass: {isGA ? '••••••••' : d.passFb1}
                                 </div>
                               )}
                             </div>
@@ -979,7 +982,7 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
                           {m.username}
                         </td>
                         <td className="px-3.5 py-3 font-mono text-slate-600 border-r border-slate-100 whitespace-nowrap">
-                          {m.password}
+                          {isGA ? '•••••••• (GA)' : m.password}
                         </td>
                         <td className="px-3.5 py-3 text-slate-700 border-r border-slate-100 whitespace-nowrap">
                           {m.profileHotspot || 'sales_jaket'}

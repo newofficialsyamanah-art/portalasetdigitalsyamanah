@@ -34,7 +34,7 @@ export async function getFirestoreSubmissions(): Promise<SubmissionRecord[]> {
   const colRef = collection(db, SUBMISSIONS_COLLECTION);
   const snap = await getDocs(colRef);
   const records: SubmissionRecord[] = [];
-  snap.forEach((d) => {
+  snap.forEach((d: any) => {
     records.push(d.data() as SubmissionRecord);
   });
   return records;
@@ -63,7 +63,7 @@ export async function getFirestoreMikrotik(): Promise<MikrotikAccount[]> {
   const colRef = collection(db, MIKROTIK_COLLECTION);
   const snap = await getDocs(colRef);
   const accounts: MikrotikAccount[] = [];
-  snap.forEach((d) => {
+  snap.forEach((d: any) => {
     accounts.push(d.data() as MikrotikAccount);
   });
   return accounts;
@@ -129,7 +129,7 @@ export async function clearCategoryFirestoreData(category: 'pc' | 'akun'): Promi
   const snap = await getDocs(colRef);
   const toDelete: string[] = [];
 
-  snap.forEach((docSnap) => {
+  snap.forEach((docSnap: any) => {
     const data = docSnap.data();
     if (data.type === category) {
       toDelete.push(docSnap.id);
@@ -157,7 +157,7 @@ export async function clearAllFirestoreMikrotik(): Promise<number> {
   const snap = await getDocs(colRef);
   const toDelete: string[] = [];
 
-  snap.forEach((docSnap) => {
+  snap.forEach((docSnap: any) => {
     toDelete.push(docSnap.id);
   });
 
@@ -182,7 +182,7 @@ export async function clearAllFirestoreData(): Promise<{ submissionsCount: numbe
   const subRef = collection(db, SUBMISSIONS_COLLECTION);
   const subSnap = await getDocs(subRef);
   const subIds: string[] = [];
-  subSnap.forEach((d) => subIds.push(d.id));
+  subSnap.forEach((d: any) => subIds.push(d.id));
 
   const batchSize = 400;
   for (let i = 0; i < subIds.length; i += batchSize) {
@@ -196,7 +196,7 @@ export async function clearAllFirestoreData(): Promise<{ submissionsCount: numbe
   const mktRef = collection(db, MIKROTIK_COLLECTION);
   const mktSnap = await getDocs(mktRef);
   const mktIds: string[] = [];
-  mktSnap.forEach((d) => mktIds.push(d.id));
+  mktSnap.forEach((d: any) => mktIds.push(d.id));
 
   for (let i = 0; i < mktIds.length; i += batchSize) {
     const chunk = mktIds.slice(i, i + batchSize);

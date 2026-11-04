@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import * as XLSX from 'xlsx';
 import { INITIAL_SYAMANAH_RECORDS } from './src/data/initialRecords.ts';
 import { INITIAL_MIKROTIK_ACCOUNTS } from './src/services/mikrotikService.ts';
-import { SubmissionRecord, MikrotikAccount, SyamanahConfig, FormPC, FormAkun } from './src/types/index.ts';
+import { SubmissionRecord, MikrotikAccount, SyamanahConfig, FormPC, FormAkun, UserAccount, UserRole } from './src/types/index.ts';
 
 dotenv.config();
 
@@ -26,8 +26,36 @@ interface ServerDatabase {
   config: SyamanahConfig;
   submissions: SubmissionRecord[];
   mikrotik: MikrotikAccount[];
+  users: UserAccount[];
   lastSyncedAt?: string;
 }
+
+const DEFAULT_USERS: UserAccount[] = [
+  {
+    id: 'user-superadmin-01',
+    username: 'superadmin',
+    password: 'password123',
+    name: 'Super Admin Syamanah',
+    role: 'superadmin',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'user-manager-01',
+    username: 'manager',
+    password: 'password123',
+    name: 'Manager Operasional',
+    role: 'manager',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'user-ga-01',
+    username: 'ga',
+    password: 'password123',
+    name: 'General Affair Staff',
+    role: 'general_affair',
+    createdAt: new Date().toISOString()
+  }
+];
 
 const DEFAULT_CONFIG: SyamanahConfig = {
   gasUrl: 'https://script.google.com/macros/s/AKfycbzalkabRunlYtF3eDqZeBI_v_UpOoYSJTHRUUJGn4G_LrUqaSP9NuaSTBipOSN8pttb/exec',
@@ -45,6 +73,7 @@ function readDb(): ServerDatabase {
         config: { ...DEFAULT_CONFIG, ...(parsed.config || {}) },
         submissions: Array.isArray(parsed.submissions) ? parsed.submissions : INITIAL_SYAMANAH_RECORDS,
         mikrotik: Array.isArray(parsed.mikrotik) ? parsed.mikrotik : INITIAL_MIKROTIK_ACCOUNTS,
+        users: Array.isArray(parsed.users) && parsed.users.length > 0 ? parsed.users : DEFAULT_USERS,
         lastSyncedAt: parsed.lastSyncedAt || undefined
       };
     }
@@ -55,7 +84,8 @@ function readDb(): ServerDatabase {
   const initialDb: ServerDatabase = {
     config: DEFAULT_CONFIG,
     submissions: INITIAL_SYAMANAH_RECORDS,
-    mikrotik: INITIAL_MIKROTIK_ACCOUNTS
+    mikrotik: INITIAL_MIKROTIK_ACCOUNTS,
+    users: DEFAULT_USERS
   };
   saveDb(initialDb);
   return initialDb;
@@ -147,6 +177,116 @@ async function startServer() {
       mikrotik: db.mikrotik,
       lastSyncedAt: db.lastSyncedAt
     });
+  });
+
+
+  // ==========================================
+  // AUTH & USER ROLE MANAGEMENT
+  // ==========================================
+  app.post('/api/auth/login', (req: Request, res: Response) => {
+    const { username, password } = req.body || {};
+    if (!username || !password) {
+      res.status(400).json({ success: false, message: 'Username dan password wajib diisi' });
+      return;
+    }
+    const db = readDb();
+    const user = db.users.find(
+      (u) => u.username.toLowerCase() === String(username).trim().toLowerCase()
+    );
+    if (!user || user.password !== String(password)) {
+      res.status(401).json({ success: false, message: 'Username atau password salah' });
+      return;
+    }
+
+    user.lastLogin = new Date().toISOString();
+    saveDb(db);
+
+    const { password: _, ...safeUser } = user;
+    res.json({ success: true, user: safeUser });
+  });
+
+  app.get('/api/users', (_req: Request, res: Response) => {
+    const db = readDb();
+    const safeUsers = (db.users || DEFAULT_USERS).map(({ password: _, ...rest }) => rest);
+    res.json(safeUsers);
+  });
+
+  app.post('/api/users', (req: Request, res: Response) => {
+    const db = readDb();
+    const { username, name, role, password } = req.body || {};
+
+    if (!username || !name || !role) {
+      res.status(400).json({ success: false, message: 'Data pengguna tidak lengkap' });
+      return;
+    }
+
+    if (db.users.some((u) => u.username.toLowerCase() === String(username).trim().toLowerCase())) {
+      res.status(400).json({ success: false, message: `Username "${username}" sudah digunakan` });
+      return;
+    }
+
+    const newUser: UserAccount = {
+      id: 'user-' + Date.now(),
+      username: String(username).trim().toLowerCase(),
+      name: String(name).trim(),
+      role: role as UserRole,
+      password: String(password || 'password123'),
+      createdAt: new Date().toISOString()
+    };
+
+    db.users.push(newUser);
+    saveDb(db);
+
+    const { password: _, ...safeUser } = newUser;
+    res.json({ success: true, user: safeUser, message: 'Pengguna baru berhasil ditambahkan' });
+  });
+
+  app.put('/api/users/:id', (req: Request, res: Response) => {
+    const db = readDb();
+    const { id } = req.params;
+    const index = db.users.findIndex((u) => u.id === id);
+
+    if (index === -1) {
+      res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan' });
+      return;
+    }
+
+    const existing = db.users[index];
+    const { name, role, password } = req.body || {};
+
+    if (name) existing.name = String(name).trim();
+    if (role) existing.role = role as UserRole;
+    if (password) existing.password = String(password);
+
+    db.users[index] = existing;
+    saveDb(db);
+
+    const { password: _, ...safeUser } = existing;
+    res.json({ success: true, user: safeUser, message: 'Data pengguna berhasil diperbarui' });
+  });
+
+  app.delete('/api/users/:id', (req: Request, res: Response) => {
+    const db = readDb();
+    const { id } = req.params;
+
+    const target = db.users.find((u) => u.id === id);
+    if (!target) {
+      res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan' });
+      return;
+    }
+
+    if (target.role === 'superadmin') {
+      const superadminCount = db.users.filter((u) => u.role === 'superadmin').length;
+      if (superadminCount <= 1) {
+        res.status(400).json({ success: false, message: 'Tidak dapat menghapus satu-satunya Super Admin' });
+        return;
+      }
+    }
+
+    db.users = db.users.filter((u) => u.id !== id);
+    saveDb(db);
+
+    res.json({ success: true, message: `Pengguna "${target.name}" berhasil dihapus` });
   });
 
   // Get and Update Configuration

@@ -13,8 +13,11 @@ import { MikrotikGenerator } from './components/MikrotikGenerator';
 import { SpreadsheetAudit } from './components/SpreadsheetAudit';
 import { DriveConnectGuideModal } from './components/DriveConnectGuideModal';
 import { PhoneInventory } from './components/PhoneInventory';
+import { UserManagement } from './components/UserManagement';
+import { LoginModal } from './components/LoginModal';
+import { getCurrentUser, setCurrentUser as persistUser, logout as authLogout } from './services/authService';
 import { SpreadsheetView } from './components/SpreadsheetView';
-import { AlertState, SubmissionRecord, SyamanahConfig, MikrotikAccount } from './types';
+import { AlertState, SubmissionRecord, SyamanahConfig, MikrotikAccount, UserAccount } from './types';
 import {
   getConfig,
   getSubmissions,
@@ -22,6 +25,7 @@ import {
   fetchAllUnifiedData,
   pullDataFromGoogleSpreadsheet
 } from './services/gasService';
+import { getMikrotikAccounts } from './services/mikrotikService';
 import { validateFirestoreConnection } from './services/firestoreService';
 import {
   CheckCircle2,
@@ -45,8 +49,11 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  // Default to spreadsheet tab so the user immediately sees the exact 1:1 Google Spreadsheet table
-  const [activeTab, setActiveTab] = useState<TabType>('spreadsheet');
+  const [currentUser, setCurrentUserState] = useState<UserAccount | null>(getCurrentUser());
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>(
+    getCurrentUser()?.role === 'general_affair' ? 'inventory' : 'spreadsheet'
+  );
   const [config, setConfigState] = useState<SyamanahConfig>(getConfig());
   const [records, setRecords] = useState<SubmissionRecord[]>(getSubmissions());
   const [mikrotikAccounts, setMikrotikAccounts] = useState<MikrotikAccount[]>(getMikrotikAccounts());
@@ -62,6 +69,16 @@ export default function App() {
     type: 'success',
     message: ''
   });
+
+  // Role-based security: General Affair is restricted to hardware inventories only
+  useEffect(() => {
+    if (currentUser?.role === 'general_affair') {
+      const allowed: TabType[] = ['inventory', 'phones', 'pc', 'dxdiag_guide'];
+      if (!allowed.includes(activeTab)) {
+        setActiveTab('inventory');
+      }
+    }
+  }, [currentUser, activeTab]);
 
   const loadData = useCallback(async () => {
     try {
@@ -150,7 +167,7 @@ export default function App() {
   const phoneCount = records.filter((r) => r.type === 'akun').length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className="min-h-screen flex flex-col bg-[#F8F7F5] text-slate-800">
       {/* Top Navigation */}
       <Navbar
         activeTab={activeTab}
@@ -163,6 +180,13 @@ export default function App() {
         }}
         onOpenSettings={() => setIsGasModalOpen(true)}
         onOpenDriveGuide={() => setIsDriveGuideOpen(true)}
+        onOpenLogin={() => setIsLoginModalOpen(true)}
+        currentUser={currentUser}
+        onLogout={() => {
+          authLogout();
+          setCurrentUserState(null);
+          setIsLoginModalOpen(true);
+        }}
         hasGasUrl={Boolean(config.gasUrl)}
         hasSpreadsheet={Boolean(config.spreadsheetId)}
         hasDriveFolder={Boolean(config.driveFolderId)}
@@ -222,85 +246,28 @@ export default function App() {
           </div>
         )}
 
-        {/* Sub-Header for Form and Catalog Modes */}
-        {(activeTab === 'pc' || activeTab === 'akun' || activeTab === 'mikrotik') ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('spreadsheet')}
-                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition"
-              >
-                <span>&larr;</span>
-                <span>Kembali ke Spreadsheet</span>
-              </button>
+        {/* Sub-Header / Notification Banner */}
+        {currentUser?.role === 'general_affair' && (
+          <div className="bg-gradient-to-r from-teal-500/10 via-teal-600/5 to-transparent border-l-4 border-[#3A7D8A] p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-700 text-xs shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#3A7D8A]/10 text-[#3A7D8A] flex items-center justify-center font-bold shrink-0">
+                <Building className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="font-bold text-[#0F1D2E] text-sm">Mode Akses General Affair (GA)</span>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  Menampilkan inventaris fisik, nama pengguna, dan spesifikasi hardware (Laptop, PC Desktop, HP Android). Seluruh data akun &amp; kredensial perusahaan terlindungi.
+                </p>
+              </div>
             </div>
-
-            <div className="flex items-center gap-1.5 self-end sm:self-auto">
-              <button
-                onClick={() => setActiveTab('pc')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  activeTab === 'pc' ? 'bg-[#0B1B3D] text-white' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Form PC
-              </button>
-              <button
-                onClick={() => setActiveTab('akun')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  activeTab === 'akun' ? 'bg-[#0B1B3D] text-white' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Form Akun Sales
-              </button>
-              <button
-                onClick={() => setActiveTab('mikrotik')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  activeTab === 'mikrotik' ? 'bg-[#0B1B3D] text-white' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Form MikroTik
-              </button>
-            </div>
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-[#0F1D2E] hover:bg-slate-50 font-bold text-xs shrink-0 transition shadow-2xs self-start sm:self-auto"
+            >
+              Ganti Akun
+            </button>
           </div>
-        ) : (activeTab === 'inventory' || activeTab === 'phones') ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('spreadsheet')}
-                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition"
-              >
-                <span>&larr;</span>
-                <span>Spreadsheet</span>
-              </button>
-            </div>
-
-            <div className="inline-flex rounded-lg bg-slate-100 p-1">
-              <button
-                onClick={() => setActiveTab('inventory')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${
-                  activeTab === 'inventory'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Laptop className="w-3.5 h-3.5" />
-                <span>Laptop &amp; PC ({deviceCount})</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('phones')}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${
-                  activeTab === 'phones'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>HP Sales ({phoneCount})</span>
-              </button>
-            </div>
-          </div>
-        ) : null}
+        )}
 
         {/* Tab Utama: Database Spreadsheet 1:1 & CRUD Lengkap */}
         {activeTab === 'spreadsheet' && (
@@ -313,6 +280,7 @@ export default function App() {
             onOpenMikrotikForm={() => setActiveTab('mikrotik')}
             onOpenSettings={() => setIsGasModalOpen(true)}
             onOpenImportModal={() => setIsImportModalOpen(true)}
+            currentUser={currentUser}
           />
         )}
 
@@ -332,6 +300,7 @@ export default function App() {
             onRefresh={loadData}
             onOpenNewPcForm={() => setActiveTab('pc')}
             onOpenImportModal={() => setIsImportModalOpen(true)}
+            currentUser={currentUser}
           />
         )}
 
@@ -341,6 +310,7 @@ export default function App() {
             records={records}
             onRefresh={loadData}
             onOpenNewPhoneForm={() => setActiveTab('akun')}
+            currentUser={currentUser}
           />
         )}
 
@@ -348,6 +318,17 @@ export default function App() {
         {activeTab === 'mikrotik' && (
           <MikrotikGenerator
             onSuccess={(msg) => showAlert(msg, 'success', 'Akun MikroTik Berhasil!')}
+          />
+        )}
+
+        {/* Tab Kelola Role / User Management (Superadmin Only) */}
+        {activeTab === 'users' && (
+          <UserManagement
+            currentUser={currentUser}
+            onRefreshSession={() => {
+              const u = getCurrentUser();
+              setCurrentUserState(u);
+            }}
           />
         )}
 
@@ -430,23 +411,47 @@ export default function App() {
         onConfigUpdated={handleConfigUpdated}
       />
 
+      {/* Modal Autentikasi & Ganti Role */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        currentUser={currentUser}
+        onLoginSuccess={(user) => {
+          persistUser(user);
+          setCurrentUserState(user);
+          if (user.role === 'general_affair') {
+            setActiveTab('inventory');
+          }
+        }}
+      />
+
       {/* Footer Berstandar Syamanah.com */}
-      <footer className="bg-[#0B1B3D] text-slate-300 border-t border-[#1C2C54] mt-12 py-8 text-xs">
+      <footer className="bg-[#0F1D2E] text-slate-300 border-t border-slate-800 mt-16 py-10 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-[#071328] flex items-center justify-center font-extrabold text-lg shadow-md shadow-amber-500/20">
-                S
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-800">
+            <div className="flex items-center gap-3.5">
+              <div className="flex items-center bg-white px-3 py-1.5 rounded-xl shadow-xs border border-white/20">
+                <img
+                  src="/logo-syamanah.png"
+                  alt="Logo Syamanah"
+                  className="h-7 w-auto object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <span className="font-extrabold text-[#0F1D2E] text-sm tracking-tight ml-1 font-sans">
+                  SYAMANAH
+                </span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold tracking-wider text-white text-sm">SYAMANAH</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                    Garment &amp; Apparel Bandung
+                  <span className="font-extrabold tracking-wider text-white text-sm">PORTAL ASET &amp; KREDENSIAL</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white">
+                    PT Generasi Sugih Sejahtera
                   </span>
                 </div>
                 <p className="text-slate-400 text-xs mt-0.5">
-                  Portal Resmi Manajemen Laptop / PC Workstation, Smartphone Sales &amp; MikroTik Hotspot
+                  Sistem Inventarisasi Laptop / PC Workstation, Smartphone Operasional Sales &amp; Jaringan MikroTik
                 </p>
               </div>
             </div>
@@ -454,31 +459,35 @@ export default function App() {
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
               <button
                 onClick={() => setActiveTab('inventory')}
-                className="text-slate-300 hover:text-amber-400 transition"
+                className="text-slate-300 hover:text-white hover:underline transition"
               >
-                💻 Katalog Laptop &amp; PC ({deviceCount})
+                💻 Laptop &amp; PC ({deviceCount})
               </button>
-              <span className="text-slate-600">·</span>
+              <span className="text-slate-700">·</span>
               <button
                 onClick={() => setActiveTab('phones')}
-                className="text-slate-300 hover:text-amber-400 transition"
+                className="text-slate-300 hover:text-white hover:underline transition"
               >
-                📱 Katalog HP &amp; Akun ({phoneCount})
+                📱 HP Sales ({phoneCount})
               </button>
-              <span className="text-slate-600">·</span>
-              <button
-                onClick={() => setActiveTab('mikrotik')}
-                className="text-slate-300 hover:text-amber-400 transition"
-              >
-                📶 Akun MikroTik Sales
-              </button>
-              <span className="text-slate-600">·</span>
-              <button
-                onClick={() => setIsDriveGuideOpen(true)}
-                className="text-amber-300 hover:text-amber-200 transition underline underline-offset-4"
-              >
-                📂 Hubungkan Drive (newofficialsyamanah@gmail.com)
-              </button>
+              {currentUser?.role !== 'general_affair' && (
+                <>
+                  <span className="text-slate-700">·</span>
+                  <button
+                    onClick={() => setActiveTab('spreadsheet')}
+                    className="text-slate-300 hover:text-white hover:underline transition"
+                  >
+                    📊 Spreadsheet ({records.length})
+                  </button>
+                  <span className="text-slate-700">·</span>
+                  <button
+                    onClick={() => setActiveTab('mikrotik')}
+                    className="text-slate-300 hover:text-white hover:underline transition"
+                  >
+                    📶 MikroTik
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

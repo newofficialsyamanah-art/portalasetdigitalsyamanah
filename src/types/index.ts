@@ -100,3 +100,21 @@ export interface AlertState {
   title?: string;
   message: string;
 }
+
+// User & Role Management
+export type UserRole = 'superadmin' | 'manager' | 'general_affair';
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  password?: string;
+  name: string;
+  role: UserRole;
+  createdAt: string;
+  lastLogin?: string;
+}
+
+export interface AuthSession {
+  user: UserAccount;
+  token?: string;
+}

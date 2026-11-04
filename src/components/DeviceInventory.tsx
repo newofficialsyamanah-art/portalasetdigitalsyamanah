@@ -23,9 +23,12 @@ import {
   Pencil,
   Plus,
   Server,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock,
+  Copy,
+  Check
 } from 'lucide-react';
-import { SubmissionRecord, FormPC } from '../types';
+import { SubmissionRecord, FormPC, UserAccount } from '../types';
 import { deleteSubmission } from '../services/gasService';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { EditRecordModal } from './EditRecordModal';
@@ -35,21 +38,25 @@ interface DeviceInventoryProps {
   onRefresh: () => void;
   onOpenNewPcForm: () => void;
   onOpenImportModal: () => void;
+  currentUser: UserAccount | null;
 }
 
 export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
   records,
   onRefresh,
   onOpenNewPcForm,
-  onOpenImportModal
+  onOpenImportModal,
+  currentUser
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [selectedRecord, setSelectedRecord] = useState<SubmissionRecord | null>(null);
-  const [activePhotoModal, setActivePhotoModal] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [editRecord, setEditRecord] = useState<SubmissionRecord | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const isGA = currentUser?.role === 'general_affair';
 
   // STRICT PRIVACY FILTER: Only include physical PC/Laptop hardware records in this inventory!
   const deviceRecords = records.filter((r) => r.type === 'pc');
@@ -74,6 +81,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
   });
 
   const handleDelete = (id: string, name: string) => {
+    if (isGA) return;
     setDeleteTarget({ id, name });
   };
 
@@ -88,31 +96,73 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
     }
   };
 
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const exportDeviceCSV = () => {
     if (deviceRecords.length === 0) {
       alert('Belum ada data perangkat untuk diekspor!');
       return;
     }
 
-    const headers = [
-      'Timestamp',
-      'Nama Pemilik',
-      'Departemen',
-      'Jabatan',
-      'Jenis Perangkat',
-      'Merk / Manufacturer',
-      'Computer Name',
-      'Operating System',
-      'Processor',
-      'RAM / Memory',
-      'IP Address',
-      'Foto Display DxDiag',
-      'Foto Sound DxDiag',
-      'Foto Input DxDiag'
-    ];
+    const headers = isGA
+      ? [
+          'Timestamp',
+          'Nama Pemilik',
+          'Departemen',
+          'Jabatan',
+          'Jenis Perangkat',
+          'Merk / Manufacturer',
+          'Computer Name',
+          'Operating System',
+          'Processor',
+          'RAM / Memory',
+          'IP Address',
+          'Foto Display DxDiag',
+          'Foto Sound DxDiag',
+          'Foto Input DxDiag'
+        ]
+      : [
+          'Timestamp',
+          'Nama Pemilik',
+          'Departemen',
+          'Jabatan',
+          'Jenis Perangkat',
+          'Merk / Manufacturer',
+          'Computer Name',
+          'Password Windows',
+          'Operating System',
+          'Processor',
+          'RAM / Memory',
+          'IP Address',
+          'Foto Display DxDiag',
+          'Foto Sound DxDiag',
+          'Foto Input DxDiag'
+        ];
 
     const rows = deviceRecords.map((r) => {
       const d = r.data as FormPC;
+      if (isGA) {
+        return [
+          r.timestamp,
+          d.nama,
+          d.departemen,
+          d.jabatan,
+          d.jenisPerangkat || 'Laptop',
+          d.manufacturer || '-',
+          d.computerName,
+          d.os,
+          d.processor,
+          d.memory,
+          d.ip,
+          d.displayLink || '-',
+          d.soundLink || '-',
+          d.inputLink || '-'
+        ];
+      }
       return [
         r.timestamp,
         d.nama,
@@ -121,6 +171,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
         d.jenisPerangkat || 'Laptop',
         d.manufacturer || '-',
         d.computerName,
+        d.passwordPc || '-',
         d.os,
         d.processor,
         d.memory,
@@ -132,7 +183,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
     });
 
     const csvContent =
-      'data:text/csv;charset=utf-8,' +
+      'data:text/csv;charset=utf-8,\uFEFF' +
       [headers, ...rows]
         .map((row) => row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(','))
         .join('\n');
@@ -140,7 +191,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `inventaris_laptop_pc_syamanah_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `inventaris_hardware_syamanah_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -156,92 +207,102 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Syamanah Official Workstation Banner */}
-      <div className="bg-gradient-to-br from-[#0B1B3D] via-[#0F2D60] to-[#0A1628] rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-blue-500/30">
+      {/* Modern Unified Hero Banner with Syamanah Colors */}
+      <div className="bg-gradient-to-r from-[#0F1D2E] via-[#163654] to-[#2E5190] rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-white/10">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2 text-xs text-blue-300 font-semibold uppercase tracking-wider">
-              <span>Syamanah Apparel Indonesia</span>
+            <div className="flex items-center gap-2 text-xs text-[#3A7D8A] font-bold uppercase tracking-wider">
+              <span className="bg-white/10 text-teal-300 px-2.5 py-0.5 rounded-full">
+                {isGA ? '🏢 Divisi General Affair' : 'Infrastruktur IT & Desain'}
+              </span>
               <span>·</span>
-              <span>Infrastruktur IT &amp; Desain</span>
-              <span>·</span>
-              <span className="text-white font-bold">{deviceRecords.length} Unit Workstation Terdaftar</span>
+              <span className="text-white font-medium">{deviceRecords.length} Unit Workstation Terdata</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Katalog Laptop &amp; PC Workstation Syamanah
-            </h2>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Katalog Laptop &amp; PC Workstation
+            </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Inventarisasi hardware komputer staf operasional kantor, desainer jersey/jaket, dan administrasi. Dilengkapi spesifikasi DxDiag, prosesor, memory RAM, Windows OS, dan tautan screenshot Google Drive.
+              {isGA
+                ? 'Inventarisasi fisik perangkat komputer staf kantor, divisi desain jersey/jaket, dan administrasi. Menampilkan nama pemakai, tipe unit, CPU, RAM, OS, dan foto DxDiag.'
+                : 'Inventarisasi hardware komputer staf kantor, desainer jersey/jaket, dan administrasi. Dilengkapi spesifikasi DxDiag, prosesor, memory RAM, Windows OS, dan kredensial perangkat.'}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={onOpenNewPcForm}
-              className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center gap-2 shadow-lg transition active:scale-95"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs flex items-center gap-2 shadow-md transition active:scale-95"
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>+ Input Laptop / PC Baru</span>
+              <Plus className="w-4 h-4" />
+              <span>+ Input Laptop / PC</span>
             </button>
 
             <button
               onClick={exportDeviceCSV}
-              className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs flex items-center gap-2 transition active:scale-95"
+              className="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs flex items-center gap-2 transition active:scale-95"
             >
-              <Download className="w-4 h-4 text-blue-300" />
+              <Download className="w-4 h-4 text-teal-300" />
               <span>Ekspor CSV</span>
             </button>
           </div>
         </div>
 
-        {/* Syamanah Hardware Stats Strip */}
-        <div className="mt-6 pt-6 border-t border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="bg-slate-900/60 border border-slate-700/60 rounded-2xl p-3.5">
-            <span className="text-slate-400 font-medium block">Total Komputer &amp; Laptop</span>
-            <span className="text-2xl font-black text-blue-400 mt-0.5 block">{deviceRecords.length} Unit</span>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">Workstation &amp; portabel</span>
+        {/* Clean Translucent Metric Cards */}
+        <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 hover:bg-white/15 transition">
+            <span className="text-slate-300 font-medium block text-[11px]">Total Komputer</span>
+            <span className="text-2xl font-black text-white mt-1 block">{deviceRecords.length} Unit</span>
+            <span className="text-[10px] text-teal-300 mt-0.5 block">Semua workstation</span>
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-700/60 rounded-2xl p-3.5">
-            <span className="text-slate-400 font-medium block">Laptop Kantor</span>
-            <span className="text-2xl font-black text-emerald-400 mt-0.5 block">{totalLaptop} Unit</span>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">Mobilitas staf &amp; sales</span>
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 hover:bg-white/15 transition">
+            <span className="text-slate-300 font-medium block text-[11px]">Laptop Staf</span>
+            <span className="text-2xl font-black text-emerald-400 mt-1 block">{totalLaptop} Unit</span>
+            <span className="text-[10px] text-emerald-200 mt-0.5 block">Portabel operasional</span>
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-700/60 rounded-2xl p-3.5">
-            <span className="text-slate-400 font-medium block">PC Desktop Meja</span>
-            <span className="text-2xl font-black text-cyan-400 mt-0.5 block">{totalPC} Unit</span>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">Desain sublimasi &amp; CRM</span>
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 hover:bg-white/15 transition">
+            <span className="text-slate-300 font-medium block text-[11px]">PC Desktop Meja</span>
+            <span className="text-2xl font-black text-cyan-300 mt-1 block">{totalPC} Unit</span>
+            <span className="text-[10px] text-cyan-200 mt-0.5 block">Desain &amp; sublimasi</span>
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-700/60 rounded-2xl p-3.5">
-            <span className="text-slate-400 font-medium block">All-in-One / Mini PC</span>
-            <span className="text-2xl font-black text-amber-400 mt-0.5 block">{totalAIO} Unit</span>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">Komputer kasir &amp; display</span>
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 hover:bg-white/15 transition">
+            <span className="text-slate-300 font-medium block text-[11px]">All-in-One / Mini PC</span>
+            <span className="text-2xl font-black text-amber-300 mt-1 block">{totalAIO} Unit</span>
+            <span className="text-[10px] text-amber-200 mt-0.5 block">Display &amp; kasir</span>
           </div>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+      {/* Seamless Search and Segmented Filter Bar */}
+      <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari nama staf, computer name, jenis perangkat, prosesor, RAM..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Cari nama pemakai, jenis perangkat, host, prosesor, RAM..."
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-none"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 shrink-0">
+          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/80 shrink-0">
             <button
               onClick={() => setTypeFilter('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 typeFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs'
+                  ? 'bg-[#0F1D2E] text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -251,7 +312,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
               onClick={() => setTypeFilter('Laptop')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 typeFilter === 'Laptop'
-                  ? 'bg-blue-600 text-white shadow-xs'
+                  ? 'bg-[#0F1D2E] text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -261,87 +322,91 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
               onClick={() => setTypeFilter('PC Desktop')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 typeFilter === 'PC Desktop'
-                  ? 'bg-cyan-600 text-white shadow-xs'
+                  ? 'bg-[#0F1D2E] text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              PC Desktop ({totalPC})
+              PC Meja ({totalPC})
             </button>
           </div>
         </div>
 
-        {/* View Mode Toggle: Grid Cards vs Dense Table */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-end sm:self-auto border border-slate-200">
+        <div className="flex items-center gap-1.5 self-end md:self-auto shrink-0">
           <button
             onClick={() => setViewMode('grid')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 transition ${
               viewMode === 'grid'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#0F1D2E] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
+            title="Tampilan Grid Card"
           >
-            Grid Workstation
+            <Layers className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Grid</span>
           </button>
           <button
             onClick={() => setViewMode('table')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 transition ${
               viewMode === 'table'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#0F1D2E] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
+            title="Tampilan Tabel Rinci"
           >
-            Tabel Spesifikasi
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Tabel</span>
           </button>
         </div>
       </div>
 
-      {/* Main Laptop & PC Content */}
+      {/* Hardware Content Area */}
       {filteredRecords.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center">
-            <Laptop className="w-7 h-7" />
+        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80 space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#3A7D8A] mx-auto flex items-center justify-center">
+            <Laptop className="w-6 h-6" />
           </div>
-          <h4 className="text-base font-bold text-slate-900">Tidak Ada Komputer Ditemukan</h4>
+          <h4 className="text-base font-bold text-slate-900">Tidak Ada Perangkat Ditemukan</h4>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             {searchTerm
-              ? 'Tidak ada perangkat yang cocok dengan pencarian Anda.'
-              : 'Belum ada data PC atau laptop. Klik "+ Input Laptop / PC Baru" untuk mendaftarkan unit.'}
+              ? 'Tidak ada perangkat yang cocok dengan kata kunci pencarian Anda.'
+              : 'Belum ada data PC atau laptop. Klik "+ Input Laptop / PC" untuk mendaftarkan unit.'}
           </p>
         </div>
       ) : viewMode === 'grid' ? (
-        /* WORKSTATION GRID: Specially designed for Laptop & PC Hardware */
+        /* WORKSTATION CARDS: Clean, Modern, Uncluttered */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredRecords.map((rec) => {
             const d = rec.data as FormPC;
-            const isLaptop = (d.jenisPerangkat || 'Laptop') === 'Laptop';
+            const devType = d.jenisPerangkat || 'Laptop';
+            const isLaptop = devType === 'Laptop';
 
             return (
               <div
                 key={rec.id}
-                className="bg-white rounded-3xl border border-slate-200 hover:border-blue-400/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group"
+                className="bg-white rounded-2xl border border-slate-200/80 hover:border-[#3A7D8A]/50 hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group"
               >
-                {/* Workstation Card Header */}
+                {/* Card Top: User & Device Category */}
                 <div className="p-5 border-b border-slate-100 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
                           isLaptop
-                            ? 'bg-blue-50 text-blue-700 border-blue-200 group-hover:bg-blue-600 group-hover:text-white'
-                            : 'bg-cyan-50 text-cyan-700 border-cyan-200 group-hover:bg-cyan-600 group-hover:text-white'
-                        } transition-colors`}
+                            ? 'bg-teal-50 text-[#3A7D8A] border-teal-200/80 group-hover:bg-[#3A7D8A] group-hover:text-white'
+                            : 'bg-blue-50 text-[#2E5190] border-blue-200/80 group-hover:bg-[#2E5190] group-hover:text-white'
+                        }`}
                       >
                         {isLaptop ? <Laptop className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
                       </div>
                       <div>
-                        <h3 className="font-extrabold text-sm text-slate-900 leading-snug">
+                        <h3 className="font-extrabold text-sm text-[#0F1D2E] leading-snug group-hover:text-[#3A7D8A] transition-colors">
                           {d.nama}
                         </h3>
                         <div className="text-[11px] text-slate-500 mt-0.5">
                           <span>{d.departemen || 'Operasional'}</span>
                           {d.jabatan && (
                             <>
-                              <span className="mx-1">·</span>
+                              <span className="mx-1 text-slate-300">·</span>
                               <span>{d.jabatan}</span>
                             </>
                           )}
@@ -349,32 +414,33 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
-                      {d.jenisPerangkat || 'Laptop'}
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                      {devType}
                     </span>
                   </div>
 
-                  {/* Computer Name & IP Badge */}
-                  <div className="p-3 bg-slate-900 text-white rounded-2xl font-mono text-[11px] space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Device ID / Host:</span>
-                      <span className="text-cyan-300 font-bold">{d.computerName}</span>
+                  {/* Device Host & IP Strip */}
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/60 rounded-xl flex items-center justify-between text-xs font-mono">
+                    <div className="flex items-center gap-1.5 truncate max-w-[170px]" title={d.computerName}>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Host:</span>
+                      <span className="font-bold text-[#0F1D2E] truncate">{d.computerName}</span>
                     </div>
-                    {d.ip && (
-                      <div className="flex items-center justify-between text-slate-300 text-[10px] pt-1 border-t border-slate-800">
-                        <span className="text-slate-400">IP Jaringan:</span>
-                        <span className="text-emerald-400">{d.ip}</span>
-                      </div>
+                    {d.ip ? (
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/50">
+                        {d.ip}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400">DHCP</span>
                     )}
                   </div>
                 </div>
 
-                {/* Specs Box */}
+                {/* Specs Section: Light, Airy, High Legibility */}
                 <div className="p-5 space-y-3 flex-1 text-xs">
-                  <div className="space-y-1.5">
+                  <div className="bg-slate-50/70 rounded-xl p-3 border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-500 flex items-center gap-1.5">
-                        <Cpu className="w-3.5 h-3.5 text-blue-600" />
+                        <Cpu className="w-3.5 h-3.5 text-[#3A7D8A]" />
                         <span>Prosesor:</span>
                       </span>
                       <span className="font-semibold text-slate-800 text-right truncate max-w-[170px]" title={d.processor}>
@@ -384,32 +450,65 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
 
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-500 flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>RAM / Memori:</span>
+                        <HardDrive className="w-3.5 h-3.5 text-[#2E5190]" />
+                        <span>RAM / Memory:</span>
                       </span>
-                      <span className="font-semibold text-slate-800">{d.memory || '8GB RAM'}</span>
+                      <span className="font-bold text-slate-800">{d.memory || '8GB RAM'}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-500 flex items-center gap-1.5">
-                        <Server className="w-3.5 h-3.5 text-teal-600" />
+                        <Server className="w-3.5 h-3.5 text-slate-600" />
                         <span>Sistem Operasi:</span>
                       </span>
                       <span className="font-semibold text-slate-800 text-right truncate max-w-[170px]" title={d.os}>
                         {d.os || 'Windows 10 Pro'}
                       </span>
                     </div>
+
+                    {/* Windows Password: Protected for General Affair */}
+                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/60">
+                      <span className="text-slate-500 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Password PC:</span>
+                      </span>
+                      {isGA ? (
+                        <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 border border-amber-200/60">
+                          <Lock className="w-2.5 h-2.5 text-amber-600" />
+                          <span>Terproteksi (GA)</span>
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono font-bold text-slate-800">
+                            {d.passwordPc || 'Tanpa Password'}
+                          </span>
+                          {d.passwordPc && (
+                            <button
+                              onClick={() => handleCopy(d.passwordPc!, `pwd_${rec.id}`)}
+                              className="text-slate-400 hover:text-slate-600 p-0.5"
+                              title="Salin Password"
+                            >
+                              {copiedId === `pwd_${rec.id}` ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Screenshot Drive Links */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center gap-2 text-[10px]">
-                    <span className="text-slate-400">DxDiag Drive:</span>
+                  {/* Screenshot DxDiag Drive Links */}
+                  <div className="flex items-center gap-1.5 text-[10px] flex-wrap">
+                    <span className="text-slate-400 font-medium">DxDiag:</span>
                     {d.displayLink && d.displayLink !== '-' ? (
                       <a
                         href={d.displayLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold flex items-center gap-1"
+                        className="px-2 py-0.5 rounded-md bg-teal-50 text-[#3A7D8A] hover:bg-teal-100 font-semibold flex items-center gap-1 border border-teal-200/50"
                       >
                         <span>Display</span>
                         <ExternalLink className="w-2.5 h-2.5" />
@@ -420,7 +519,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                         href={d.soundLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold flex items-center gap-1"
+                        className="px-2 py-0.5 rounded-md bg-blue-50 text-[#2E5190] hover:bg-blue-100 font-semibold flex items-center gap-1 border border-blue-200/50"
                       >
                         <span>Sound</span>
                         <ExternalLink className="w-2.5 h-2.5" />
@@ -431,7 +530,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                         href={d.inputLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2 py-0.5 rounded-md bg-cyan-50 text-cyan-700 hover:bg-cyan-100 font-semibold flex items-center gap-1"
+                        className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold flex items-center gap-1 border border-slate-200"
                       >
                         <span>Input</span>
                         <ExternalLink className="w-2.5 h-2.5" />
@@ -440,8 +539,8 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                   </div>
                 </div>
 
-                {/* Card Bottom Bar: CRUD Actions */}
-                <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between">
+                {/* Card Bottom Bar: Actions */}
+                <div className="p-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-[10px] text-slate-400 font-medium">
                     Input: {rec.timestamp.split(' ')[0]}
                   </span>
@@ -449,27 +548,33 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => setSelectedRecord(rec)}
-                      title="Lihat Detail Lengkap (Read)"
-                      className="p-2 text-slate-600 hover:text-blue-700 hover:bg-blue-100/50 rounded-xl transition"
+                      title="Lihat Detail Lengkap"
+                      className="px-2.5 py-1 text-slate-600 hover:text-[#3A7D8A] hover:bg-teal-50 rounded-lg text-xs font-semibold transition flex items-center gap-1 border border-slate-200/60"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Detail</span>
                     </button>
 
-                    <button
-                      onClick={() => setEditRecord(rec)}
-                      title="Edit Data Hardware (Update)"
-                      className="p-2 text-slate-600 hover:text-amber-700 hover:bg-amber-100/50 rounded-xl transition"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
+                    {/* Only Superadmin & Manager can edit or delete */}
+                    {!isGA && (
+                      <>
+                        <button
+                          onClick={() => setEditRecord(rec)}
+                          title="Edit Data Hardware"
+                          className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
 
-                    <button
-                      onClick={() => handleDelete(rec.id, d.nama)}
-                      title="Hapus dari inventaris & Spreadsheet (Delete)"
-                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100/50 rounded-xl transition"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                        <button
+                          onClick={() => handleDelete(rec.id, d.nama)}
+                          title="Hapus dari inventaris"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -477,37 +582,37 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
           })}
         </div>
       ) : (
-        /* DENSE HARDWARE TABLE */
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        /* TABLE VIEW */
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-slate-600 uppercase tracking-wider font-semibold text-[11px]">
-                  <th className="py-3 px-4">Nama Pemilik</th>
-                  <th className="py-3 px-4">Jenis Perangkat &amp; Merk</th>
-                  <th className="py-3 px-4">Departemen &amp; Jabatan</th>
-                  <th className="py-3 px-4">Spesifikasi Inti (CPU / RAM)</th>
-                  <th className="py-3 px-4">Computer Name &amp; IP</th>
-                  <th className="py-3 px-4 text-center">DxDiag Drive</th>
-                  <th className="py-3 px-4 text-right">Aksi CRUD</th>
+                <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-600 uppercase tracking-wider font-semibold text-[11px]">
+                  <th className="py-3 px-4">Nama Pemakai</th>
+                  <th className="py-3 px-4">Perangkat &amp; Merk</th>
+                  <th className="py-3 px-4">Departemen</th>
+                  <th className="py-3 px-4">Spesifikasi (CPU / RAM)</th>
+                  <th className="py-3 px-4">Host &amp; IP</th>
+                  {!isGA && <th className="py-3 px-4">Password PC</th>}
+                  <th className="py-3 px-4 text-center">DxDiag</th>
+                  <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredRecords.map((rec) => {
                   const d = rec.data as FormPC;
                   const devType = d.jenisPerangkat || 'Laptop';
-                  const isLaptop = devType === 'Laptop';
 
                   return (
                     <tr key={rec.id} className="hover:bg-slate-50/80 transition">
                       <td className="py-3 px-4">
-                        <span className="font-bold text-slate-900 block">{d.nama}</span>
+                        <span className="font-bold text-[#0F1D2E] block">{d.nama}</span>
                         <span className="text-[10px] text-slate-400">{d.jabatan || 'Staf'}</span>
                       </td>
 
                       <td className="py-3 px-4">
                         <span className="font-semibold text-slate-800 block">{d.manufacturer || 'Standar OEM'}</span>
-                        <span className="text-[10px] text-blue-600 font-bold">{devType}</span>
+                        <span className="text-[10px] text-[#3A7D8A] font-bold">{devType}</span>
                       </td>
 
                       <td className="py-3 px-4">
@@ -516,13 +621,19 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
 
                       <td className="py-3 px-4">
                         <span className="font-semibold text-slate-800 block truncate max-w-xs">{d.processor || '-'}</span>
-                        <span className="text-[10px] text-indigo-700 font-bold">{d.memory || '8GB RAM'}</span>
+                        <span className="text-[10px] text-[#2E5190] font-bold">{d.memory || '8GB RAM'}</span>
                       </td>
 
                       <td className="py-3 px-4 font-mono text-[11px]">
                         <span className="font-bold text-slate-900 block">{d.computerName}</span>
-                        <span className="text-[10px] text-emerald-600">{d.ip || '-'}</span>
+                        <span className="text-[10px] text-emerald-700">{d.ip || 'DHCP'}</span>
                       </td>
+
+                      {!isGA && (
+                        <td className="py-3 px-4 font-mono text-xs">
+                          {d.passwordPc || '-'}
+                        </td>
+                      )}
 
                       <td className="py-3 px-4 text-center">
                         {d.displayLink && d.displayLink !== '-' ? (
@@ -530,9 +641,9 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                             href={d.displayLink}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#3A7D8A] hover:underline"
                           >
-                            <span>Screenshot</span>
+                            <span>Drive</span>
                             <ExternalLink className="w-3 h-3" />
                           </a>
                         ) : (
@@ -544,25 +655,29 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setSelectedRecord(rec)}
-                            title="Lihat Detail (Read)"
-                            className="p-1.5 text-slate-500 hover:text-blue-700 hover:bg-slate-100 rounded-lg transition"
+                            title="Lihat Detail"
+                            className="p-1.5 text-slate-500 hover:text-[#3A7D8A] hover:bg-slate-100 rounded-lg transition"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => setEditRecord(rec)}
-                            title="Edit Data (Update)"
-                            className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-slate-100 rounded-lg transition"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(rec.id, d.nama)}
-                            title="Hapus Data (Delete)"
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {!isGA && (
+                            <>
+                              <button
+                                onClick={() => setEditRecord(rec)}
+                                title="Edit Data"
+                                className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(rec.id, d.nama)}
+                                title="Hapus Data"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -576,78 +691,91 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
 
       {/* Detail Modal */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[85vh] flex flex-col">
-            <div className="bg-[#0B1B3D] text-white px-6 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-[#0F1D2E]/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-[#0F1D2E] via-[#163654] to-[#2E5190] text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-white/10 text-teal-300 flex items-center justify-center font-bold border border-white/10">
                   <Laptop className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-bold text-base">
                     {(selectedRecord.data as FormPC).computerName}
                   </h3>
-                  <p className="text-xs text-blue-300">
-                    Pemilik: {(selectedRecord.data as FormPC).nama} &bull; ID: {selectedRecord.id}
+                  <p className="text-xs text-slate-300">
+                    Pemakai: {(selectedRecord.data as FormPC).nama} &bull; ID: {selectedRecord.id}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedRecord(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-xl"
+                className="p-1.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="overflow-y-auto p-6 space-y-4 text-xs">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 grid grid-cols-2 gap-3">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 grid grid-cols-2 gap-3.5">
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Nama Pemilik:</span>
-                  <div className="font-bold text-slate-900">{(selectedRecord.data as FormPC).nama}</div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Nama Pemakai:</span>
+                  <div className="font-bold text-[#0F1D2E] text-sm mt-0.5">{(selectedRecord.data as FormPC).nama}</div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Departemen / Jabatan:</span>
-                  <div className="font-bold text-slate-900">
-                    {(selectedRecord.data as FormPC).departemen} · {(selectedRecord.data as FormPC).jabatan}
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Departemen / Jabatan:</span>
+                  <div className="font-bold text-slate-800 mt-0.5">
+                    {(selectedRecord.data as FormPC).departemen} · {(selectedRecord.data as FormPC).jabatan || '-'}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Jenis &amp; Merk:</span>
-                  <div className="font-bold text-slate-900">
-                    {(selectedRecord.data as FormPC).jenisPerangkat} ({(selectedRecord.data as FormPC).manufacturer || 'OEM'})
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Jenis &amp; Merk:</span>
+                  <div className="font-bold text-slate-800 mt-0.5">
+                    {(selectedRecord.data as FormPC).jenisPerangkat} ({(selectedRecord.data as FormPC).manufacturer || 'Standar OEM'})
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Operating System:</span>
-                  <div className="font-bold text-slate-900">{(selectedRecord.data as FormPC).os}</div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Operating System:</span>
+                  <div className="font-bold text-slate-800 mt-0.5">{(selectedRecord.data as FormPC).os}</div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Prosesor:</span>
-                  <div className="font-bold text-slate-900">{(selectedRecord.data as FormPC).processor}</div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Prosesor:</span>
+                  <div className="font-bold text-slate-800 mt-0.5">{(selectedRecord.data as FormPC).processor}</div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">RAM / Memory:</span>
-                  <div className="font-bold text-slate-900">{(selectedRecord.data as FormPC).memory}</div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">RAM / Memory:</span>
+                  <div className="font-bold text-slate-800 mt-0.5">{(selectedRecord.data as FormPC).memory}</div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">IP Address:</span>
-                  <div className="font-bold font-mono text-emerald-700">{(selectedRecord.data as FormPC).ip || '-'}</div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">IP Address:</span>
+                  <div className="font-bold font-mono text-emerald-700 mt-0.5">{(selectedRecord.data as FormPC).ip || 'DHCP'}</div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Password Windows:</span>
-                  <div className="font-bold font-mono text-slate-700">{(selectedRecord.data as FormPC).passwordPc || 'Tanpa Password'}</div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Password Windows:</span>
+                  {isGA ? (
+                    <div className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 border border-amber-200/60 mt-0.5">
+                      <Lock className="w-3 h-3 text-amber-600" />
+                      <span>•••••••• (Akses Terbatas: GA)</span>
+                    </div>
+                  ) : (
+                    <div className="font-bold font-mono text-slate-800 mt-0.5">
+                      {(selectedRecord.data as FormPC).passwordPc || 'Tanpa Password'}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Tautan Screenshot DxDiag di Drive */}
               <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-2">
-                <span className="text-blue-300 font-bold text-xs">Tautan Google Drive Screenshot DxDiag:</span>
-                <div className="space-y-1 text-[11px] font-mono">
+                <span className="text-teal-300 font-bold text-xs flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Tautan Google Drive Screenshot DxDiag:</span>
+                </span>
+                <div className="space-y-1.5 text-[11px] font-mono">
                   {(selectedRecord.data as FormPC).displayLink && (
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Display:</span>
-                      <a href={(selectedRecord.data as FormPC).displayLink} target="_blank" rel="noreferrer" className="text-cyan-400 underline truncate max-w-sm">
+                      <a href={(selectedRecord.data as FormPC).displayLink} target="_blank" rel="noreferrer" className="text-teal-400 underline truncate max-w-sm">
                         {(selectedRecord.data as FormPC).displayLink}
                       </a>
                     </div>
@@ -655,7 +783,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                   {(selectedRecord.data as FormPC).soundLink && (
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Sound:</span>
-                      <a href={(selectedRecord.data as FormPC).soundLink} target="_blank" rel="noreferrer" className="text-cyan-400 underline truncate max-w-sm">
+                      <a href={(selectedRecord.data as FormPC).soundLink} target="_blank" rel="noreferrer" className="text-teal-400 underline truncate max-w-sm">
                         {(selectedRecord.data as FormPC).soundLink}
                       </a>
                     </div>
@@ -663,7 +791,7 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
                   {(selectedRecord.data as FormPC).inputLink && (
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Input:</span>
-                      <a href={(selectedRecord.data as FormPC).inputLink} target="_blank" rel="noreferrer" className="text-cyan-400 underline truncate max-w-sm">
+                      <a href={(selectedRecord.data as FormPC).inputLink} target="_blank" rel="noreferrer" className="text-teal-400 underline truncate max-w-sm">
                         {(selectedRecord.data as FormPC).inputLink}
                       </a>
                     </div>
@@ -673,20 +801,26 @@ export const DeviceInventory: React.FC<DeviceInventoryProps> = ({
             </div>
 
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-              <button
-                onClick={() => {
-                  setEditRecord(selectedRecord);
-                  setSelectedRecord(null);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                <span>Edit Spesifikasi Komputer</span>
-              </button>
+              {!isGA ? (
+                <button
+                  onClick={() => {
+                    setEditRecord(selectedRecord);
+                    setSelectedRecord(null);
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>Edit Spesifikasi</span>
+                </button>
+              ) : (
+                <div className="text-[11px] text-slate-500">
+                  Mode Hanya-Lihat (General Affair)
+                </div>
+              )}
 
               <button
                 onClick={() => setSelectedRecord(null)}
-                className="px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-[#0F1D2E] text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
               >
                 Tutup
               </button>
