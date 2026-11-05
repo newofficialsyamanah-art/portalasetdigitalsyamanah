@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { SubmissionRecord, FormPC, FormAkun } from '../types';
 import { updateSubmission } from '../services/gasService';
+import { getDivisions, fetchDivisions } from '../services/divisionService';
 
 interface EditRecordModalProps {
   isOpen: boolean;
@@ -36,6 +37,13 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [divisionList, setDivisionList] = useState<string[]>(getDivisions());
+
+  useEffect(() => {
+    fetchDivisions().then((list) => {
+      if (list && list.length > 0) setDivisionList(list);
+    });
+  }, []);
 
   useEffect(() => {
     if (record) {
@@ -153,14 +161,21 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Departemen
+                      Departemen / Divisi
                     </label>
                     <input
                       type="text"
+                      list="edit-pc-dept-list"
                       value={pcData.departemen || ''}
                       onChange={(e) => handleChange('departemen', e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      placeholder="Pilih atau ketik departemen..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-none"
                     />
+                    <datalist id="edit-pc-dept-list">
+                      {divisionList.map((d) => (
+                        <option key={d} value={d} />
+                      ))}
+                    </datalist>
                   </div>
 
                   <div>
@@ -370,15 +385,21 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Kategori Tim / Role
+                      Kategori Tim / Divisi
                     </label>
                     <input
                       type="text"
+                      list="edit-akun-dept-list"
                       value={akunData.kategori || ''}
                       onChange={(e) => handleChange('kategori', e.target.value)}
                       placeholder="Sales Jaket 1 / CRM / Eksekutif..."
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-none"
                     />
+                    <datalist id="edit-akun-dept-list">
+                      {divisionList.map((d) => (
+                        <option key={d} value={d} />
+                      ))}
+                    </datalist>
                   </div>
 
                   <div>

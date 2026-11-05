@@ -25,9 +25,11 @@ import {
   FileSpreadsheet,
   ExternalLink,
   Loader2,
-  Pencil
+  Pencil,
+  Plus
 } from 'lucide-react';
 import { MikrotikAccount, MikrotikTeam } from '../types';
+import { getDivisions, fetchDivisions, addDivision } from '../services/divisionService';
 import {
   MIKROTIK_TEAMS,
   getMikrotikAccounts,
@@ -58,6 +60,24 @@ export const MikrotikGenerator: React.FC<MikrotikGeneratorProps> = ({ onSuccess 
   const [jabatan, setJabatan] = useState('');
   const [catatan, setCatatan] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [divisionList, setDivisionList] = useState<string[]>(getDivisions());
+  const [isAddingDivision, setIsAddingDivision] = useState(false);
+  const [newDivisionInput, setNewDivisionInput] = useState('');
+
+  useEffect(() => {
+    fetchDivisions().then((list) => {
+      if (list && list.length > 0) setDivisionList(list);
+    });
+  }, []);
+
+  const handleAddNewDivision = async () => {
+    if (!newDivisionInput.trim()) return;
+    const res = await addDivision(newDivisionInput.trim());
+    setDivisionList(res.divisions);
+    setTim(newDivisionInput.trim());
+    setNewDivisionInput('');
+    setIsAddingDivision(false);
+  };
 
   // Auto generated values
   const [generatedUsername, setGeneratedUsername] = useState('');
@@ -143,7 +163,13 @@ export const MikrotikGenerator: React.FC<MikrotikGeneratorProps> = ({ onSuccess 
     setIsSaving(true);
 
     try {
-      const teamConfig = MIKROTIK_TEAMS.find((t) => t.id === tim) || MIKROTIK_TEAMS[0];
+      const teamConfig = MIKROTIK_TEAMS.find((t) => t.id === tim) || {
+        id: tim,
+        label: tim,
+        codePrefix: (tim.slice(0, 2) || 'SK').toUpperCase(),
+        profile: 'sales_jaket',
+        rateLimit: '10M/10M'
+      };
       const command = generateMikrotikCommand(
         generatedUsername,
         generatedPassword,
@@ -519,26 +545,74 @@ export const MikrotikGenerator: React.FC<MikrotikGeneratorProps> = ({ onSuccess 
               </span>
             </div>
 
-            {/* Tim Sales (jaket1, jaket2, jersey1, jersey2, eksekutif, crm) */}
+            {/* Tim Sales & Divisi Perusahaan */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-blue-600" />
-                <span>Pilih Tim Sales <span className="text-rose-500">*</span></span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-[#3A7D8A]" />
+                  <span>Tim / Divisi <span className="text-rose-500">*</span></span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingDivision(!isAddingDivision)}
+                  className="text-[11px] text-[#3A7D8A] hover:underline font-bold flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>{isAddingDivision ? 'Batal' : '+ Tambah Tim Baru'}</span>
+                </button>
+              </div>
+
+              {isAddingDivision && (
+                <div className="flex items-center gap-2 mb-2 animate-in fade-in duration-150">
+                  <input
+                    type="text"
+                    value={newDivisionInput}
+                    onChange={(e) => setNewDivisionInput(e.target.value)}
+                    placeholder="Nama tim baru (misal: Tim Marketing)"
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-none"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddNewDivision();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddNewDivision}
+                    className="px-3.5 py-2 bg-[#3A7D8A] hover:bg-[#2e646f] text-white rounded-xl text-xs font-bold shrink-0 transition shadow-xs"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              )}
+
               <select
                 value={tim}
-                onChange={(e) => setTim(e.target.value as MikrotikTeam)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white transition"
+                onChange={(e) => setTim(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-[#3A7D8A] focus:outline-none bg-white transition"
               >
-                <option value="jaket1">Tim Jaket 1 (jaket1)</option>
-                <option value="jaket2">Tim Jaket 2 (jaket2)</option>
-                <option value="jersey1">Tim Jersey 1 (jersey1)</option>
-                <option value="jersey2">Tim Jersey 2 (jersey2)</option>
-                <option value="eksekutif">Sales Eksekutif (eksekutif)</option>
-                <option value="crm">Tim CRM (crm)</option>
+                <optgroup label="Preset Tim Hotspot Standar">
+                  <option value="jaket1">Tim Jaket 1 (jaket1)</option>
+                  <option value="jaket2">Tim Jaket 2 (jaket2)</option>
+                  <option value="jersey1">Tim Jersey 1 (jersey1)</option>
+                  <option value="jersey2">Tim Jersey 2 (jersey2)</option>
+                  <option value="eksekutif">Sales Eksekutif (eksekutif)</option>
+                  <option value="crm">Tim CRM (crm)</option>
+                </optgroup>
+                <optgroup label="Divisi & Tim Perusahaan">
+                  {divisionList
+                    .filter((d) => !['jaket1', 'jaket2', 'jersey1', 'jersey2', 'eksekutif', 'crm'].includes(d))
+                    .map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                </optgroup>
               </select>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Menentukan prefix username &amp; profil bandwidth
+                Menentukan prefix username &amp; profil bandwidth MikroTik
               </span>
             </div>
 

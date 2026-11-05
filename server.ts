@@ -27,8 +27,25 @@ interface ServerDatabase {
   submissions: SubmissionRecord[];
   mikrotik: MikrotikAccount[];
   users: UserAccount[];
+  divisions?: string[];
   lastSyncedAt?: string;
 }
+
+const DEFAULT_DIVISIONS: string[] = [
+  'Sales Jaket',
+  'Sales Jersey',
+  'Sales Eksekutif',
+  'Sales Seragam & Kaos Polo',
+  'CRM (Customer Relationship Management)',
+  'Marketing Communication & Ads',
+  'Desain Grafis & Sublimasi',
+  'Produksi & Quality Control',
+  'Finance & Accounting',
+  'General Affair & Fasilitas',
+  'IT Infrastructure & Network',
+  'HRD & Manajemen',
+  'Procurement & Gudang'
+];
 
 const DEFAULT_USERS: UserAccount[] = [
   {
@@ -74,6 +91,7 @@ function readDb(): ServerDatabase {
         submissions: Array.isArray(parsed.submissions) ? parsed.submissions : INITIAL_SYAMANAH_RECORDS,
         mikrotik: Array.isArray(parsed.mikrotik) ? parsed.mikrotik : INITIAL_MIKROTIK_ACCOUNTS,
         users: Array.isArray(parsed.users) && parsed.users.length > 0 ? parsed.users : DEFAULT_USERS,
+        divisions: Array.isArray(parsed.divisions) && parsed.divisions.length > 0 ? parsed.divisions : DEFAULT_DIVISIONS,
         lastSyncedAt: parsed.lastSyncedAt || undefined
       };
     }
@@ -85,7 +103,8 @@ function readDb(): ServerDatabase {
     config: DEFAULT_CONFIG,
     submissions: INITIAL_SYAMANAH_RECORDS,
     mikrotik: INITIAL_MIKROTIK_ACCOUNTS,
-    users: DEFAULT_USERS
+    users: DEFAULT_USERS,
+    divisions: DEFAULT_DIVISIONS
   };
   saveDb(initialDb);
   return initialDb;
@@ -175,6 +194,7 @@ async function startServer() {
       config: db.config,
       submissions: db.submissions,
       mikrotik: db.mikrotik,
+      divisions: db.divisions || DEFAULT_DIVISIONS,
       lastSyncedAt: db.lastSyncedAt
     });
   });
@@ -287,6 +307,80 @@ async function startServer() {
     saveDb(db);
 
     res.json({ success: true, message: `Pengguna "${target.name}" berhasil dihapus` });
+  });
+
+  // ==========================================
+  // DIVISIONS & TEAMS MANAGEMENT (ALL-MODULES)
+  // ==========================================
+  app.get('/api/divisions', (_req: Request, res: Response) => {
+    const db = readDb();
+    res.json(db.divisions || DEFAULT_DIVISIONS);
+  });
+
+  app.post('/api/divisions', (req: Request, res: Response) => {
+    const db = readDb();
+    const { name } = req.body || {};
+    if (!name || !String(name).trim()) {
+      res.status(400).json({ success: false, message: 'Nama divisi tidak boleh kosong' });
+      return;
+    }
+    const cleanName = String(name).trim();
+    const current = db.divisions || [...DEFAULT_DIVISIONS];
+    if (current.some((d) => d.toLowerCase() === cleanName.toLowerCase())) {
+      res.status(400).json({ success: false, message: `Divisi "${cleanName}" sudah terdaftar`, divisions: current });
+      return;
+    }
+    current.push(cleanName);
+    db.divisions = current;
+    saveDb(db);
+    res.json({ success: true, divisions: db.divisions, message: `Divisi "${cleanName}" berhasil ditambahkan` });
+  });
+
+  app.put('/api/divisions', (req: Request, res: Response) => {
+    const db = readDb();
+    const { oldName, newName } = req.body || {};
+    if (!oldName || !newName || !String(newName).trim()) {
+      res.status(400).json({ success: false, message: 'Nama divisi lama dan baru wajib diisi' });
+      return;
+    }
+    const cleanNew = String(newName).trim();
+    let current = db.divisions || [...DEFAULT_DIVISIONS];
+    const idx = current.findIndex((d) => d.toLowerCase() === String(oldName).trim().toLowerCase());
+    if (idx !== -1) {
+      current[idx] = cleanNew;
+    } else {
+      current.push(cleanNew);
+    }
+    db.divisions = current;
+
+    // Update submissions that used the old division name
+    db.submissions = db.submissions.map((sub) => {
+      if (sub.type === 'pc') {
+        const d = sub.data as FormPC;
+        if (d.departemen === oldName) {
+          return { ...sub, data: { ...d, departemen: cleanNew } };
+        }
+      } else if (sub.type === 'akun') {
+        const d = sub.data as FormAkun;
+        if (d.kategori === oldName) {
+          return { ...sub, data: { ...d, kategori: cleanNew } };
+        }
+      }
+      return sub;
+    });
+
+    saveDb(db);
+    res.json({ success: true, divisions: db.divisions, message: `Divisi "${cleanNew}" berhasil diperbarui` });
+  });
+
+  app.delete('/api/divisions/:name', (req: Request, res: Response) => {
+    const db = readDb();
+    const { name } = req.params;
+    let current = db.divisions || [...DEFAULT_DIVISIONS];
+    current = current.filter((d) => d.toLowerCase() !== decodeURIComponent(name).toLowerCase());
+    db.divisions = current;
+    saveDb(db);
+    res.json({ success: true, divisions: db.divisions, message: `Divisi berhasil dihapus` });
   });
 
   // Get and Update Configuration
@@ -1253,7 +1347,9 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Syamanah Portal Central Server running on http://0.0.0.0:${PORT}`);
+    console.log(`\n  🚀 Portal Aset Digital Syamanah aktif!`);
+    console.log(`  ➜  Local:   http://localhost:${PORT}/`);
+    console.log(`  ➜  Network: http://127.0.0.1:${PORT}/\n`);
   });
 }
 

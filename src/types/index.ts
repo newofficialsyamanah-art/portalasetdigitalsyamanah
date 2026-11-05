@@ -77,13 +77,13 @@ export interface SyamanahConfig {
   superadminPin: string;
 }
 
-export type MikrotikTeam = 'jaket1' | 'jaket2' | 'jersey1' | 'jersey2' | 'eksekutif' | 'crm';
+export type MikrotikTeam = 'jaket1' | 'jaket2' | 'jersey1' | 'jersey2' | 'eksekutif' | 'crm' | string;
 
 export interface MikrotikAccount {
   id: string;
   namaPemilik: string;
   jabatan: string;
-  tim: MikrotikTeam;
+  tim: string;
   username: string;
   password: string;
   profileHotspot: string;

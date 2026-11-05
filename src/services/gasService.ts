@@ -764,6 +764,13 @@ export async function fetchAllUnifiedData(): Promise<{
         cachedSubmissions = data.submissions;
         localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(data.submissions));
       }
+      if (Array.isArray(data.divisions)) {
+        try {
+          localStorage.setItem('syamanah_divisions', JSON.stringify(data.divisions));
+        } catch {
+          // ignore
+        }
+      }
 
       // Sync both submissions and mikrotik to Firestore in background
       if (Array.isArray(data.submissions) && Array.isArray(data.mikrotik)) {

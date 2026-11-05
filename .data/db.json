@@ -5203,5 +5203,46 @@
       "catatan": "-"
     }
   ],
+  "users": [
+    {
+      "id": "user-superadmin-01",
+      "username": "superadmin",
+      "password": "password123",
+      "name": "Super Admin Syamanah",
+      "role": "superadmin",
+      "createdAt": "2026-11-04T03:05:35.254Z"
+    },
+    {
+      "id": "user-manager-01",
+      "username": "manager",
+      "password": "password123",
+      "name": "Manager Operasional",
+      "role": "manager",
+      "createdAt": "2026-11-04T03:05:35.254Z"
+    },
+    {
+      "id": "user-ga-01",
+      "username": "ga",
+      "password": "password123",
+      "name": "General Affair Staff",
+      "role": "general_affair",
+      "createdAt": "2026-11-04T03:05:35.254Z"
+    }
+  ],
+  "divisions": [
+    "Sales Jaket",
+    "Sales Jersey",
+    "Sales Eksekutif",
+    "Sales Seragam & Kaos Polo",
+    "CRM (Customer Relationship Management)",
+    "Marketing Communication & Ads",
+    "Desain Grafis & Sublimasi",
+    "Produksi & Quality Control",
+    "Finance & Accounting",
+    "General Affair & Fasilitas",
+    "Business Analyst",
+    "HRD & Manajemen",
+    "Procurement & Gudang"
+  ],
   "lastSyncedAt": "2/11/2026, 01.52.02"
 }

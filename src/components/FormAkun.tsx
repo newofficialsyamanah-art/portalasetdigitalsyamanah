@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { FormAkun as FormAkunType } from '../types';
 import { submitToGoogleAppsScript, DRAFT_AKUN_KEY } from '../services/gasService';
+import { getDivisions, fetchDivisions, addDivision } from '../services/divisionService';
 
 interface FormAkunProps {
   onSuccess: (message: string) => void;
@@ -96,6 +97,25 @@ export const FormAkun: React.FC<FormAkunProps> = ({
     }
     return INITIAL_FORM;
   });
+
+  const [divisionList, setDivisionList] = useState<string[]>(getDivisions());
+  const [isAddingDivision, setIsAddingDivision] = useState(false);
+  const [newDivisionInput, setNewDivisionInput] = useState('');
+
+  useEffect(() => {
+    fetchDivisions().then((list) => {
+      if (list && list.length > 0) setDivisionList(list);
+    });
+  }, []);
+
+  const handleAddNewDivision = async () => {
+    if (!newDivisionInput.trim()) return;
+    const res = await addDivision(newDivisionInput.trim());
+    setDivisionList(res.divisions);
+    handleChange('kategori', newDivisionInput.trim());
+    setNewDivisionInput('');
+    setIsAddingDivision(false);
+  };
 
   // Dynamic account list starts with EXACTLY ONE account item (as requested by user)
   const [accountList, setAccountList] = useState<DynamicAccountItem[]>(() => {
@@ -470,34 +490,59 @@ export const FormAkun: React.FC<FormAkunProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Kategori Tim / Role <span className="text-rose-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Kategori Tim / Divisi <span className="text-rose-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingDivision(!isAddingDivision)}
+                  className="text-[11px] text-[#3A7D8A] hover:underline font-bold flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>{isAddingDivision ? 'Batal' : '+ Tambah Tim Baru'}</span>
+                </button>
+              </div>
+
+              {isAddingDivision && (
+                <div className="flex items-center gap-2 mb-2 animate-in fade-in duration-150">
+                  <input
+                    type="text"
+                    value={newDivisionInput}
+                    onChange={(e) => setNewDivisionInput(e.target.value)}
+                    placeholder="Nama tim baru (misal: Sales Online)"
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-none"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddNewDivision();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddNewDivision}
+                    className="px-3.5 py-2 bg-[#3A7D8A] hover:bg-[#2e646f] text-white rounded-xl text-xs font-bold shrink-0 transition shadow-xs"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              )}
+
               <input
                 type="text"
                 required
                 list="roles-list"
                 value={formData.kategori}
                 onChange={(e) => handleChange('kategori', e.target.value)}
-                placeholder="Pilih atau ketik kategori..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:outline-none transition"
+                placeholder="Pilih atau ketik kategori tim..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-[#3A7D8A] focus:border-[#3A7D8A] focus:outline-none transition"
               />
               <datalist id="roles-list">
-                <option value="Sales Eksekutif (Teh Hesti)" />
-                <option value="Seragam/Kaos/Polo (Teh Iir)" />
-                <option value="Jersey (Teh Wahdah)" />
-                <option value="Jaket (Teh Devia)" />
-                <option value="Jaket (Teh Alya)" />
-                <option value="Manager Sales" />
-                <option value="CRM" />
-                <option value="Procurement" />
-                <option value="Sales Raffiz" />
-                <option value="Sales Offline" />
-                <option value="Marketing Communication" />
-                <option value="Advertiser" />
-                <option value="Finance" />
-                <option value="Accounting" />
-                <option value="Manager Finance" />
+                {divisionList.map((div) => (
+                  <option key={div} value={div} />
+                ))}
               </datalist>
             </div>
 

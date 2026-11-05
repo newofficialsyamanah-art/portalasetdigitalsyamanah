@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { MikrotikAccount } from '../types';
 import { updateMikrotikAccount, generateMikrotikCommand, MIKROTIK_TEAMS } from '../services/mikrotikService';
+import { getDivisions, fetchDivisions } from '../services/divisionService';
 
 interface EditMikrotikModalProps {
   isOpen: boolean;
@@ -33,6 +34,13 @@ export const EditMikrotikModal: React.FC<EditMikrotikModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedCmd, setCopiedCmd] = useState(false);
+  const [divisionList, setDivisionList] = useState<string[]>(getDivisions());
+
+  useEffect(() => {
+    fetchDivisions().then((list) => {
+      if (list && list.length > 0) setDivisionList(list);
+    });
+  }, []);
 
   useEffect(() => {
     if (account) {
@@ -167,18 +175,34 @@ export const EditMikrotikModal: React.FC<EditMikrotikModalProps> = ({
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Tim Sales
+                Tim Sales / Divisi
               </label>
               <select
                 value={formData.tim || 'jaket1'}
                 onChange={(e) => handleChange('tim', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-semibold"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-none bg-white font-semibold"
               >
-                {MIKROTIK_TEAMS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label} (Profile: {t.profile})
-                  </option>
-                ))}
+                <optgroup label="Preset Tim Hotspot">
+                  {MIKROTIK_TEAMS.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label} (Profile: {t.profile})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Divisi & Tim Perusahaan">
+                  {divisionList
+                    .filter((d) => !MIKROTIK_TEAMS.some((t) => t.id === d))
+                    .map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                </optgroup>
+                {formData.tim &&
+                  !MIKROTIK_TEAMS.some((t) => t.id === formData.tim) &&
+                  !divisionList.includes(formData.tim) && (
+                    <option value={formData.tim}>{formData.tim}</option>
+                  )}
               </select>
             </div>
 

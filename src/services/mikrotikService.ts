@@ -244,8 +244,8 @@ export function resetMikrotikSeed(): void {
  * Generate kode username pendek otomatis (contoh: SJ01, SJ02, SR01, SE01, SC01)
  * Tidak panjang, menggunakan kode tim dan nomor urut 2 digit
  */
-export function generateShortCodeUsername(tim: MikrotikTeam, existingAccounts: MikrotikAccount[] = []): string {
-  const prefixMap: Record<MikrotikTeam, string> = {
+export function generateShortCodeUsername(tim: string, existingAccounts: MikrotikAccount[] = []): string {
+  const prefixMap: Record<string, string> = {
     jaket1: 'SJ',
     jaket2: 'SJ',
     jersey1: 'SR',
@@ -254,10 +254,14 @@ export function generateShortCodeUsername(tim: MikrotikTeam, existingAccounts: M
     crm: 'SC'
   };
 
-  const prefix = prefixMap[tim] || 'SJ';
+  let prefix = prefixMap[tim];
+  if (!prefix) {
+    const letters = tim.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    prefix = letters.length >= 2 ? letters.slice(0, 2) : (letters + 'X').slice(0, 2);
+  }
 
   // Hitung jumlah akun yang sudah ada dengan prefix yang sama untuk nomor urut
-  const countInTeam = existingAccounts.filter((a) => a.tim === tim).length;
+  const countInTeam = existingAccounts.filter((a) => a.tim.toLowerCase() === tim.toLowerCase()).length;
   let nextNum = countInTeam + 1;
 
   // Format 2 digit (01, 02, 03 ...)

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar, TabType } from './components/Navbar';
+import { Footer } from './components/Footer';
 import { DeviceInventory } from './components/DeviceInventory';
 import { SuperadminSummary } from './components/SuperadminSummary';
 import { FormPC } from './components/FormPC';
@@ -332,12 +333,17 @@ export default function App() {
           />
         )}
 
-        {/* Tab 2: Superadmin Executive Summary & Dashboard */}
+        {/* Tab Superadmin: Pusat Kontrol CRUD Semua Modul & Kelola Divisi */}
         {activeTab === 'superadmin' && (
           <SuperadminSummary
             records={records}
+            mikrotikAccounts={mikrotikAccounts}
             onRefresh={loadData}
             onOpenSettings={() => setIsGasModalOpen(true)}
+            onOpenPcForm={() => setActiveTab('pc')}
+            onOpenAkunForm={() => setActiveTab('akun')}
+            onOpenMikrotikForm={() => setActiveTab('mikrotik')}
+            currentUser={currentUser}
           />
         )}
 
@@ -426,87 +432,24 @@ export default function App() {
       />
 
       {/* Footer Berstandar Syamanah.com */}
-      <footer className="bg-[#0F1D2E] text-slate-300 border-t border-slate-800 mt-16 py-10 text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-800">
-            <div className="flex items-center gap-3.5">
-              <div className="flex items-center bg-white px-3 py-1.5 rounded-xl shadow-xs border border-white/20">
-                <img
-                  src="/logo-syamanah.png"
-                  alt="Logo Syamanah"
-                  className="h-7 w-auto object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-                <span className="font-extrabold text-[#0F1D2E] text-sm tracking-tight ml-1 font-sans">
-                  SYAMANAH
-                </span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold tracking-wider text-white text-sm">PORTAL ASET &amp; KREDENSIAL</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white">
-                    PT Generasi Sugih Sejahtera
-                  </span>
-                </div>
-                <p className="text-slate-400 text-xs mt-0.5">
-                  Sistem Inventarisasi Laptop / PC Workstation, Smartphone Operasional Sales &amp; Jaringan MikroTik
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
-              <button
-                onClick={() => setActiveTab('inventory')}
-                className="text-slate-300 hover:text-white hover:underline transition"
-              >
-                💻 Laptop &amp; PC ({deviceCount})
-              </button>
-              <span className="text-slate-700">·</span>
-              <button
-                onClick={() => setActiveTab('phones')}
-                className="text-slate-300 hover:text-white hover:underline transition"
-              >
-                📱 HP Sales ({phoneCount})
-              </button>
-              {currentUser?.role !== 'general_affair' && (
-                <>
-                  <span className="text-slate-700">·</span>
-                  <button
-                    onClick={() => setActiveTab('spreadsheet')}
-                    className="text-slate-300 hover:text-white hover:underline transition"
-                  >
-                    📊 Spreadsheet ({records.length})
-                  </button>
-                  <span className="text-slate-700">·</span>
-                  <button
-                    onClick={() => setActiveTab('mikrotik')}
-                    className="text-slate-300 hover:text-white hover:underline transition"
-                  >
-                    📶 MikroTik
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400 text-[11px]">
-            <div>
-              &copy; {new Date().getFullYear()} CV Syamanah Berkah Abadi &middot; Jl. Maleber Utara No. 528 / 187B, Kota Bandung &middot;{' '}
-              <a href="https://syamanah.com" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">
-                syamanah.com
-              </a>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Database Spreadsheet Terkoneksi 1:1
-              </span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          if (tab === 'dxdiag_guide') {
+            setIsDxDiagModalOpen(true);
+          } else {
+            setActiveTab(tab);
+          }
+        }}
+        onOpenDxDiagGuide={() => setIsDxDiagModalOpen(true)}
+        onOpenSettings={() => setIsGasModalOpen(true)}
+        onOpenDriveGuide={() => setIsDriveGuideOpen(true)}
+        onOpenLogin={() => setIsLoginModalOpen(true)}
+        currentUser={currentUser}
+        deviceCount={deviceCount}
+        phoneCount={phoneCount}
+        totalSubmissions={records.length + mikrotikAccounts.length}
+      />
     </div>
   );
 }
