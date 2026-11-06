@@ -33,7 +33,7 @@
             </div>
             <div>
                 <h1 class="text-lg sm:text-xl font-extrabold text-white tracking-wide">PORTAL ASET &amp; KREDENSIAL</h1>
-                <p class="text-xs text-slate-400 mt-1">Sistem Otentikasi Terpusat Berbasis RBAC Spatie</p>
+                <p class="text-xs text-slate-400 mt-1">Sistem Aset Digital Terpusat Berbasis Web</p>
             </div>
         </div>
 
