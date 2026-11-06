@@ -99,7 +99,7 @@
 
         <!-- Footer Notice -->
         <div class="pt-4 text-center text-[11px] text-slate-500 border-t border-slate-800/80">
-            &copy; {{ date('Y') }} PT Generasi Sugih Sejahtera &middot; CV Syamanah Berkah Abadi<br>
+            &copy; {{ date('Y') }} CV Generasi Sugih Sejahtera <br>
             <a href="https://syamanah.com" target="_blank" rel="noreferrer" class="text-amber-400 hover:text-amber-300 font-semibold hover:underline mt-0.5 inline-block">syamanah.com</a>
         </div>
     </div>
