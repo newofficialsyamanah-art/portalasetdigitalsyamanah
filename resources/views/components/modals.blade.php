@@ -1,6 +1,6 @@
 <!-- Universal Interactive Modals Component -->
 
-<!-- 1. Modal Login / Ganti Role -->
+<!-- 1. Modal Login / Ganti Akun -->
 <div x-show="openLoginModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
     <div @click.away="openLoginModal = false" class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 text-slate-800 animate-in fade-in zoom-in-95">
         <div class="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -9,8 +9,8 @@
                     🔐
                 </div>
                 <div>
-                    <h3 class="font-bold text-base text-slate-900">Autentikasi &amp; Ganti Role</h3>
-                    <p class="text-xs text-slate-500">Pilih peran akses atau login manual</p>
+                    <h3 class="font-bold text-base text-slate-900">Autentikasi Akun</h3>
+                    <p class="text-xs text-slate-500">Masuk menggunakan kredensial akun Anda</p>
                 </div>
             </div>
             <button @click="openLoginModal = false" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
@@ -18,73 +18,37 @@
             </button>
         </div>
 
-        <!-- Quick 1-Click Role Switch -->
-        <div class="py-4 space-y-2.5">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pilih Cepat Peran (Bypass Demo / Internal):</p>
-            
-            <form action="{{ route('auth.switch-role') }}" method="POST">
-                @csrf
-                <input type="hidden" name="role" value="superadmin">
-                <button type="submit" class="w-full text-left p-3 rounded-2xl border border-amber-200 bg-amber-50/50 hover:bg-amber-100/60 transition flex items-center justify-between group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs">👑</div>
-                        <div>
-                            <div class="font-bold text-xs text-amber-950">Superadmin</div>
-                            <div class="text-[10px] text-amber-800">Akses penuh CRUD seluruh modul &amp; divisi</div>
-                        </div>
-                    </div>
-                    <span class="text-xs font-bold text-amber-700 group-hover:translate-x-1 transition-transform">&rarr;</span>
-                </button>
-            </form>
-
-            <form action="{{ route('auth.switch-role') }}" method="POST">
-                @csrf
-                <input type="hidden" name="role" value="manager">
-                <button type="submit" class="w-full text-left p-3 rounded-2xl border border-blue-200 bg-blue-50/50 hover:bg-blue-100/60 transition flex items-center justify-between group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs">👔</div>
-                        <div>
-                            <div class="font-bold text-xs text-blue-950">Manager Operasional</div>
-                            <div class="text-[10px] text-blue-800">Lihat semua akun, inventaris &amp; kredensial</div>
-                        </div>
-                    </div>
-                    <span class="text-xs font-bold text-blue-700 group-hover:translate-x-1 transition-transform">&rarr;</span>
-                </button>
-            </form>
-
-            <form action="{{ route('auth.switch-role') }}" method="POST">
-                @csrf
-                <input type="hidden" name="role" value="general_affair">
-                <button type="submit" class="w-full text-left p-3 rounded-2xl border border-teal-200 bg-teal-50/50 hover:bg-teal-100/60 transition flex items-center justify-between group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-[#3A7D8A] text-white font-bold flex items-center justify-center text-xs">🏢</div>
-                        <div>
-                            <div class="font-bold text-xs text-teal-950">General Affair (GA)</div>
-                            <div class="text-[10px] text-teal-800">Spesifikasi fisik hardware, sandi terlindungi</div>
-                        </div>
-                    </div>
-                    <span class="text-xs font-bold text-teal-700 group-hover:translate-x-1 transition-transform">&rarr;</span>
-                </button>
-            </form>
-        </div>
-
-        <!-- Or Login with credentials -->
-        <div class="pt-3 border-t border-slate-100">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">Atau Masuk dengan Kredensial:</p>
-            <form action="{{ url('/login') }}" method="POST" class="space-y-3">
+        <!-- Login with credentials -->
+        <div class="py-4">
+            <form action="{{ url('/login') }}" method="POST" class="space-y-3.5">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
-                    <input type="text" name="username" required placeholder="superadmin / manager / ga" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Username Akun</label>
+                    <input type="text" name="username" required placeholder="Contoh: superadmin / manager / ga" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <input type="password" name="password" required placeholder="••••••••" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                    <input type="password" name="password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
                 </div>
-                <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs shadow-md transition">
-                    Masuk ke Sistem
-                </button>
+                
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs shadow-md transition text-center">
+                        Masuk ke Akun
+                    </button>
+                </div>
             </form>
+
+            @auth
+                <div class="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between text-xs">
+                    <span class="text-slate-500">Aktif: <strong class="text-slate-800">{{ Auth::user()->name }}</strong> ({{ Auth::user()->role }})</span>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="text-rose-600 hover:text-rose-700 font-bold hover:underline">
+                            Keluar (Logout)
+                        </button>
+                    </form>
+                </div>
+            @endauth
         </div>
     </div>
 </div>
@@ -217,4 +181,3 @@
         </form>
     </div>
 </div>
-

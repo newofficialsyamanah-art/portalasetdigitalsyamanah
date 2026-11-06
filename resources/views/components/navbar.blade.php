@@ -79,10 +79,10 @@
                     <span>Audit</span>
                 </button>
 
-                @if(Auth::check() && Auth::user()->role === 'superadmin')
+                @if(Auth::check() && (Auth::user()->role === 'superadmin' || Auth::user()->can('manage users')))
                     <button @click="setTab('superadmin')" :class="activeTab === 'superadmin' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-sm ring-1 ring-amber-300/50' : 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'" class="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all duration-200">
                         <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-                        <span>👑 Superadmin</span>
+                        <span>👑 Superadmin &amp; RBAC</span>
                     </button>
                 @endif
             @endif
@@ -172,10 +172,10 @@
                         </div>
 
                         <div class="py-2 space-y-1">
-                            @if(Auth::user()->role === 'superadmin')
+                            @if(Auth::user()->role === 'superadmin' || Auth::user()->can('manage users'))
                                 <button @click="setTab('superadmin'); openProfileDropdown = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-amber-50 flex items-center gap-2.5 text-amber-900 transition">
                                     <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-                                    <span>👑 Pusat Kontrol Superadmin</span>
+                                    <span>👑 Pusat Kontrol Superadmin &amp; RBAC</span>
                                 </button>
                             @endif
 
@@ -288,12 +288,12 @@
                 </div>
             </div>
 
-            @if(Auth::check() && Auth::user()->role === 'superadmin')
+            @if(Auth::check() && (Auth::user()->role === 'superadmin' || Auth::user()->can('manage users')))
                 <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-amber-400/80 px-2 mb-1.5">Kontrol Superadmin</p>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-amber-400/80 px-2 mb-1.5">Kontrol Superadmin &amp; RBAC</p>
                     <div class="space-y-1">
                         <button @click="setTab('superadmin'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-bold bg-amber-500/20 text-amber-300 transition">
-                            <span>👑 Pusat Kontrol Superadmin</span>
+                            <span>👑 Pusat Kontrol &amp; RBAC</span>
                         </button>
                     </div>
                 </div>

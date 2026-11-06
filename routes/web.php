@@ -41,10 +41,13 @@ Route::post('/divisions', [DivisionController::class, 'store'])->name('divisions
 Route::put('/divisions', [DivisionController::class, 'update'])->name('divisions.update');
 Route::delete('/divisions/{name}', [DivisionController::class, 'destroy'])->name('divisions.destroy');
 
-// Superadmin Controls
+// Superadmin Controls (User & RBAC CRUD)
 Route::post('/superadmin/users', [SuperadminController::class, 'storeUser'])->name('superadmin.users.store');
 Route::put('/superadmin/users/{id}', [SuperadminController::class, 'updateUser'])->name('superadmin.users.update');
 Route::delete('/superadmin/users/{id}', [SuperadminController::class, 'destroyUser'])->name('superadmin.users.destroy');
+Route::post('/superadmin/roles', [SuperadminController::class, 'storeRole'])->name('superadmin.roles.store');
+Route::put('/superadmin/roles/{role}/permissions', [SuperadminController::class, 'updateRolePermissions'])->name('superadmin.roles.permissions');
+Route::delete('/superadmin/roles/{role}', [SuperadminController::class, 'destroyRole'])->name('superadmin.roles.destroy');
 Route::post('/superadmin/config', [SuperadminController::class, 'updateConfig'])->name('superadmin.config.update');
 
 // Sync & Health Check

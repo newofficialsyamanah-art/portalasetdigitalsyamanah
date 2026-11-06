@@ -9,26 +9,24 @@ use App\Models\AppConfig;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Artisan;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
         // Auto-initialize Spatie roles and permissions if not yet migrated
-        if (!\Illuminate\Support\Facades\Schema::hasTable('roles')) {
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        if (!Schema::hasTable('roles')) {
+            Artisan::call('migrate', ['--force' => true]);
+            Artisan::call('db:seed', ['--force' => true]);
         }
 
         $user = Auth::user();
         if (!$user) {
-            // Auto login as superadmin for convenience or redirect to login
-            $user = User::where('role', 'superadmin')->first();
-            if ($user) {
-                Auth::login($user);
-            } else {
-                return redirect()->route('login');
-            }
+            return redirect()->route('login');
         }
 
         $activeTab = $request->query('tab', $user->role === 'general_affair' ? 'inventory' : 'spreadsheet');
@@ -41,7 +39,14 @@ class DashboardController extends Controller
         $submissions = Submission::orderBy('created_at', 'desc')->get();
         $mikrotikAccounts = MikrotikAccount::orderBy('created_at', 'desc')->get();
         $divisions = Division::orderBy('name')->pluck('name')->toArray();
-        $users = User::all();
+        $users = User::with('roles', 'permissions')->get();
+
+        $roles = class_exists(Role::class) && Schema::hasTable('roles')
+            ? Role::with('permissions')->get() 
+            : collect();
+        $allPermissions = class_exists(Permission::class) && Schema::hasTable('permissions')
+            ? Permission::orderBy('name')->get() 
+            : collect();
 
         // Calculate counts
         $deviceCount = $submissions->filter(function ($s) {
@@ -70,6 +75,8 @@ class DashboardController extends Controller
             'mikrotikAccounts',
             'divisions',
             'users',
+            'roles',
+            'allPermissions',
             'deviceCount',
             'phoneCount',
             'totalSubmissions',
@@ -77,4 +84,3 @@ class DashboardController extends Controller
         ));
     }
 }
-
