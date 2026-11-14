@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             'manage inventory',
             'manage mikrotik',
             'delete records',
+            'manage guidebooks',
         ];
 
         foreach ($permissions as $permName) {
@@ -47,6 +48,7 @@ class DatabaseSeeder extends Seeder
             'manage inventory',
             'manage mikrotik',
             'delete records',
+            'manage guidebooks',
         ]);
         $gaRole->syncPermissions([
             'manage inventory',
@@ -84,6 +86,10 @@ class DatabaseSeeder extends Seeder
             );
             $user->syncRoles([$u['role']]);
         }
+
+        // Seed Default App Configurations
+        AppConfig::firstOrCreate(['key' => 'erpnextApiKey'], ['value' => '43895e90883a899']);
+        AppConfig::firstOrCreate(['key' => 'erpnextApiSecret'], ['value' => '3d8c285da00a784']);
 
         // 4. Read from .data/db.json if available
         $jsonPath = base_path('.data/db.json');

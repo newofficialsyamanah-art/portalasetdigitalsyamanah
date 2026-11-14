@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masuk - Portal Aset &amp; Kredensial Digital Syamanah</title>
+    <title>Masuk - Enterprise Asset Management</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,13 +27,13 @@
         
         <!-- Header Brand (Syamanah Identity) -->
         <div class="text-center space-y-3">
-            <div class="inline-flex items-center bg-white px-3 py-1.5 rounded-2xl shadow-sm border border-white/20">
+            <div class="inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl shadow-sm border border-white/20">
                 <img src="/logo-syamanah.png" alt="Logo Syamanah" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
-              
+                <span class="font-black text-[#0F1D2E] text-sm tracking-wider">SYAMANAH</span>
             </div>
             <div>
-                <h1 class="text-lg sm:text-xl font-extrabold text-white tracking-wide">PORTAL ASET &amp; KREDENSIAL</h1>
-                <p class="text-xs text-slate-400 mt-1">Sistem Aset Digital Terpusat Berbasis Web</p>
+                <h1 class="text-lg sm:text-xl font-extrabold text-white tracking-wide">ENTERPRISE ASSET MANAGEMENT</h1>
+                <p class="text-xs text-slate-400 mt-1">Sistem Pengelolaan Aset Digital Terpusat</p>
             </div>
         </div>
 
@@ -93,7 +93,7 @@
 
             <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-teal-900/30 transition flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
-                <span>Masuk ke Sistem Portal</span>
+                <span>Masuk ke Enterprise Asset Management</span>
             </button>
         </form>
 

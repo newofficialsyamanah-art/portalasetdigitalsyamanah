@@ -1,8 +1,8 @@
 @echo off
-title Update & Deploy Portal Syamanah ke VPS
+title Update & Deploy Enterprise Asset Management ke VPS
 cls
 echo ===================================================
-echo   DEPLOY UPDATE KE SERVER VPS (139.190.99.209)
+echo   DEPLOY EAM KE SERVER VPS (139.190.99.209)
 echo ===================================================
 echo.
 
@@ -21,7 +21,7 @@ scp -i "C:\Users\SYAMANAH\.ssh\id_rsa" portal-update.tar.gz syamanah@139.190.99.
 
 echo.
 echo [3/4] Mengekstrak file & me-restart service di VPS...
-ssh -i "C:\Users\SYAMANAH\.ssh\id_rsa" syamanah@139.190.99.209 "tar -xzf /home/syamanah/portal-update.tar.gz -C /home/syamanah/portal-aset && rm -f /home/syamanah/portal-update.tar.gz && chmod -R 775 /home/syamanah/portal-aset/storage /home/syamanah/portal-aset/bootstrap/cache && sudo systemctl restart portal-syamanah && sudo systemctl status portal-syamanah --no-pager"
+ssh -i "C:\Users\SYAMANAH\.ssh\id_rsa" syamanah@139.190.99.209 "tar -xzf /home/syamanah/portal-update.tar.gz -C /home/syamanah/portal-aset && rm -f /home/syamanah/portal-update.tar.gz && chmod -R 775 /home/syamanah/portal-aset/storage /home/syamanah/portal-aset/bootstrap/cache && cd /home/syamanah/portal-aset && php artisan view:clear && php artisan route:clear && sudo systemctl restart portal-syamanah && sudo systemctl status portal-syamanah --no-pager"
 
 echo.
 echo [4/4] Membersihkan file sementara lokal...

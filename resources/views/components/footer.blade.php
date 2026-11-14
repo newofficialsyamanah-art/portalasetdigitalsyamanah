@@ -8,23 +8,23 @@
             <!-- Column 1: Brand & Perusahaan -->
             <div class="space-y-4">
                 <div class="flex items-center gap-3">
-                    <div class="flex items-center bg-white px-2.5 py-1.5 rounded-xl shadow-xs border border-white/20">
+                    <div class="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-xl shadow-xs border border-white/20">
                         <img src="/logo-syamanah.png" alt="Logo Syamanah" class="h-7 w-auto object-contain" onerror="this.style.display='none'">
-                    
+                        <!-- <span class="font-black text-[#0F1D2E] text-xs font-sans tracking-tight">SYAMANAH</span> -->
                     </div>
                 </div>
 
                 <div class="space-y-1.5">
                     <div class="flex items-center gap-2">
                         <span class="font-bold text-white text-sm tracking-wide">
-                            PORTAL ASET &amp; KREDENSIAL
+                            ENTERPRISE ASSET MANAGEMENT
                         </span>
                     </div>
                     <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white uppercase tracking-wider">
                         CV GENERASI SUGIH SEJAHTERA
                     </span>
                     <p class="text-slate-400 text-xs leading-relaxed pt-1">
-                        Sistem inventarisasi terpusat berbasis web untuk PC Workstation, Smartphone Operasional, Akun Digital, dan Hotspot Jaringan MikroTik.
+                        Sistem Enterprise Asset Management (EAM) terpusat berbasis web untuk PC Workstation, Smartphone Operasional, Akun Digital, dan Hotspot Jaringan MikroTik.
                     </p>
                 </div>
 
@@ -103,6 +103,15 @@
                             </button>
                         </li>
                     @endif
+                    <li>
+                        <button @click="setTab('guides')" class="w-full text-left py-1 px-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-between transition">
+                            <span class="flex items-center gap-2">
+                                <span class="text-amber-400">📚</span>
+                                <span>Buku Panduan &amp; SOP Sistem</span>
+                            </span>
+                            <span class="text-[10px] font-mono bg-slate-800 px-1.5 py-0.5 rounded text-amber-300">{{ count($guideBooks ?? []) }} Dokumen</span>
+                        </button>
+                    </li>
                     <li>
                         <button @click="openDxDiagModal = true" class="w-full text-left py-1 px-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center gap-2 transition">
                             <span class="text-blue-400">❓</span>

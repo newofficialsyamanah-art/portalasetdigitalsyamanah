@@ -15,7 +15,7 @@
         <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
             <!-- Search -->
             <div class="relative flex-1 sm:w-64">
-                <input type="text" x-model="searchTerm" placeholder="Cari nama, komputer, akun..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                <input type="text" x-model="searchTerm" placeholder="Cari nama, IP, komputer, OS..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
                 <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
 
@@ -26,6 +26,17 @@
                     <option value="{{ $div }}">{{ $div }}</option>
                 @endforeach
             </select>
+
+            <!-- Excel Export & Import Actions -->
+            <button type="button" @click="openExportModal = true" class="px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs" title="Ekspor Data ke Excel (.xlsx)">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>Ekspor Excel</span>
+            </button>
+
+            <button type="button" @click="openImportModal = true" class="px-3 py-2 rounded-xl border border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs" title="Impor Data dari Excel (.xlsx / .csv)">
+                <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <span>Impor Excel</span>
+            </button>
 
             <!-- Refresh / Sync Button -->
             <form action="{{ route('sync.spreadsheet') }}" method="POST" class="inline">
@@ -55,7 +66,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($submissions as $index => $sub)
-                        <tr x-show="(filterDept === 'all' || '{{ $sub->departemen }}' === filterDept) && (searchTerm === '' || '{{ strtolower($sub->nama . ' ' . $sub->departemen . ' ' . ($sub->data['computerName'] ?? '') . ' ' . ($sub->data['jenisHp'] ?? '')) }}'.includes(searchTerm.toLowerCase()))" class="hover:bg-slate-50/60 transition">
+                        <tr x-show="(filterDept === 'all' || '{{ $sub->departemen }}' === filterDept) && (searchTerm === '' || '{{ strtolower($sub->nama . ' ' . $sub->departemen . ' ' . ($sub->data['computerName'] ?? '') . ' ' . ($sub->data['jenisHp'] ?? '') . ' ' . ($sub->data['ip'] ?? '') . ' ' . ($sub->data['os'] ?? '') . ' ' . ($sub->data['processor'] ?? '')) }}'.includes(searchTerm.toLowerCase()))" class="hover:bg-slate-50/60 transition">
                             <td class="py-3.5 px-4 text-center font-mono text-slate-400 text-[11px]">{{ $index + 1 }}</td>
                             
                             <!-- Nama & Jabatan -->
@@ -73,15 +84,22 @@
 
                             <!-- Tipe Aset & Model -->
                             <td class="py-3.5 px-4">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-start gap-2">
                                     @if($sub->type === 'pc')
-                                        <span class="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">💻</span>
+                                        <span class="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                                            {{ str_contains(strtolower($sub->jenis_perangkat ?? ''), 'laptop') ? '💻' : '🖥️' }}
+                                        </span>
                                         <div>
                                             <div class="font-bold text-slate-800">{{ $sub->jenis_perangkat }}</div>
-                                            <div class="text-[10px] text-slate-400 font-mono">{{ $sub->data['manufacturer'] ?? ($sub->data['computerName'] ?? '-') }}</div>
+                                            <div class="text-[10px] text-slate-500 font-mono">{{ $sub->data['computerName'] ?? ($sub->data['manufacturer'] ?? '-') }}</div>
+                                            @if(!empty($sub->data['ip']) && $sub->data['ip'] !== '-')
+                                                <div class="inline-flex items-center gap-1 font-mono text-[10px] text-teal-800 bg-teal-50 px-1.5 py-0.5 rounded-md mt-1 border border-teal-200">
+                                                    <span>🌐 {{ $sub->data['ip'] }}</span>
+                                                </div>
+                                            @endif
                                         </div>
                                     @else
-                                        <span class="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0">📱</span>
+                                        <span class="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">📱</span>
                                         <div>
                                             <div class="font-bold text-slate-800">{{ $sub->data['jenisHp'] ?? 'Smartphone Sales' }}</div>
                                             <div class="text-[10px] text-slate-400 font-mono">WA: {{ $sub->data['noWa'] ?? '-' }}</div>
@@ -93,8 +111,27 @@
                             <!-- Spesifikasi / Detail -->
                             <td class="py-3.5 px-4 max-w-xs">
                                 @if($sub->type === 'pc')
-                                    <div class="text-[11px] text-slate-600 line-clamp-1"><strong>CPU:</strong> {{ $sub->data['processor'] ?? '-' }}</div>
+                                    <div class="text-[11px] text-slate-600 line-clamp-1" title="{{ $sub->data['processor'] ?? '-' }}"><strong>CPU:</strong> {{ $sub->data['processor'] ?? '-' }}</div>
                                     <div class="text-[11px] text-slate-500"><strong>RAM:</strong> {{ $sub->data['memory'] ?? '-' }} &middot; <strong>OS:</strong> {{ $sub->data['os'] ?? '-' }}</div>
+                                    @php
+                                        $hasLinks = (!empty($sub->data['displayLink']) && $sub->data['displayLink'] !== '-') ||
+                                                    (!empty($sub->data['soundLink']) && $sub->data['soundLink'] !== '-') ||
+                                                    (!empty($sub->data['inputLink']) && $sub->data['inputLink'] !== '-');
+                                    @endphp
+                                    @if($hasLinks)
+                                        <div class="flex items-center gap-2 mt-1">
+                                            @if(!empty($sub->data['displayLink']) && $sub->data['displayLink'] !== '-')
+                                                <a href="{{ $sub->data['displayLink'] }}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-blue-600 hover:text-blue-800 underline font-semibold inline-flex items-center gap-0.5">
+                                                    <span>🖥️ DxDiag</span>
+                                                </a>
+                                            @endif
+                                            @if(!empty($sub->data['soundLink']) && $sub->data['soundLink'] !== '-')
+                                                <a href="{{ $sub->data['soundLink'] }}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-slate-500 hover:text-blue-600 underline inline-flex items-center gap-0.5">
+                                                    <span>🔊 Audio</span>
+                                                </a>
+                                            @endif
+                                        </div>
+                                    @endif
                                 @else
                                     <div class="text-[11px] text-slate-600 line-clamp-1"><strong>Akun:</strong> {{ $sub->data['akunLoginPc'] ?? ($sub->data['email1'] ?? '-') }}</div>
                                     <div class="text-[11px] text-slate-500 line-clamp-1"><strong>Sosmed:</strong> IG: {{ $sub->data['ig1'] ?? '-' }} &middot; FB: {{ $sub->data['fb1'] ?? '-' }}</div>
@@ -132,6 +169,9 @@
                             <td class="py-3.5 px-4 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
                                     @if(!Auth::check() || Auth::user()->role !== 'general_affair')
+                                        <button type="button" @click="openErpPushFor('{{ $sub->id }}', '{{ addslashes($sub->nama . ' - ' . ($sub->data['computerName'] ?? ($sub->data['jenisHp'] ?? $sub->jenis_perangkat))) }}', '{{ addslashes($sub->departemen) }}', '{{ addslashes($sub->nama) }}', '{{ addslashes($sub->data['computerName'] ?? ($sub->data['jenisHp'] ?? 'IT-ASSET')) }}')" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition" title="Kirim Aset ini ke ERPNext">
+                                            <span class="text-xs font-bold">⚡ ERP</span>
+                                        </button>
                                         <button @click="deleteTarget = { name: '{{ addslashes($sub->nama) }}', url: '{{ route('submissions.destroy', $sub->id) }}' }; openDeleteModal = true" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition" title="Hapus Aset">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         </button>

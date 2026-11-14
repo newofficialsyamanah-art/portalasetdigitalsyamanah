@@ -60,8 +60,8 @@
         </div>
     </div>
 
-    <!-- Security & Hardware Breakdown -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Security, Network & Hardware Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Division Breakdown -->
         <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
             <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
@@ -69,7 +69,7 @@
                 Alokasi Aset per Divisi
             </h3>
             
-            <div class="space-y-3 text-xs">
+            <div class="space-y-3 text-xs max-h-72 overflow-y-auto pr-1">
                 @foreach($divisions as $div)
                     @php
                         $c = $submissions->where('departemen', $div)->count();
@@ -85,6 +85,63 @@
                         </div>
                     </div>
                 @endforeach
+            </div>
+        </div>
+
+        <!-- Network & Software Specification Analytics -->
+        @php
+            $pcList = $submissions->filter(fn($s) => $s->type === 'pc');
+            $withIp = $pcList->filter(fn($s) => !empty($s->data['ip']) && $s->data['ip'] !== '-')->count();
+            $withDxdiag = $pcList->filter(fn($s) => !empty($s->data['displayLink']) && $s->data['displayLink'] !== '-')->count();
+            $win11Count = $pcList->filter(fn($s) => str_contains(strtolower($s->data['os'] ?? ''), '11'))->count();
+            $win10Count = $pcList->filter(fn($s) => str_contains(strtolower($s->data['os'] ?? ''), '10'))->count();
+            $macCount = $pcList->filter(fn($s) => str_contains(strtolower($s->data['os'] ?? ''), 'mac'))->count();
+        @endphp
+        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                Audit Jaringan &amp; OS (Software)
+            </h3>
+
+            <div class="space-y-3 text-xs">
+                <!-- IP Coverage -->
+                <div class="p-3 bg-teal-50/70 border border-teal-100 rounded-2xl">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-teal-900 flex items-center gap-1.5">
+                            <span>🌐 Cakupan IP Statis / DHCP:</span>
+                        </span>
+                        <span class="font-mono font-bold text-teal-800">{{ $withIp }} / {{ $pcList->count() }} ({{ $pcList->count() > 0 ? round(($withIp / $pcList->count()) * 100) : 0 }}%)</span>
+                    </div>
+                    <p class="text-[10px] text-teal-700">Perangkat komputer dengan alamat IP tercatat di sistem inventaris.</p>
+                </div>
+
+                <!-- DxDiag Proof -->
+                <div class="p-3 bg-blue-50/70 border border-blue-100 rounded-2xl">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-blue-900 flex items-center gap-1.5">
+                            <span>📄 Bukti DxDiag &amp; Drive:</span>
+                        </span>
+                        <span class="font-mono font-bold text-blue-800">{{ $withDxdiag }} Dokumen</span>
+                    </div>
+                    <p class="text-[10px] text-blue-700">Bukti DxDiag Display, Audio, dan Perangkat Input terverifikasi.</p>
+                </div>
+
+                <!-- OS Distribution -->
+                <div class="pt-2 border-t border-slate-100 space-y-2">
+                    <span class="block font-semibold text-slate-700 text-[11px]">Distribusi Sistem Operasi:</span>
+                    <div class="flex items-center justify-between text-[11px] text-slate-600">
+                        <span class="flex items-center gap-1">🪟 Windows 10 Pro / Home</span>
+                        <span class="font-mono font-bold text-slate-800">{{ $win10Count }} Unit</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-600">
+                        <span class="flex items-center gap-1">🪟 Windows 11 Pro / Home</span>
+                        <span class="font-mono font-bold text-slate-800">{{ $win11Count }} Unit</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-600">
+                        <span class="flex items-center gap-1">🍎 Apple macOS</span>
+                        <span class="font-mono font-bold text-slate-800">{{ $macCount }} Unit</span>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -16,6 +16,9 @@
     <!-- Tab 5: Audit & Analitik Kredensial -->
     @include('tabs.audit')
 
+    <!-- Tab 9: Buku Panduan & SOP Sistem (Guide Books) -->
+    @include('tabs.guidebooks')
+
     <!-- Tab 6: Form Input Laptop & PC Workstation -->
     @include('tabs.form-pc')
 

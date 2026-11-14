@@ -84,11 +84,11 @@
                 </div>
             </div>
 
-            <!-- Section 2: Spesifikasi Hardware -->
+            <!-- Section 2: Spesifikasi Hardware & Sistem Operasi -->
             <div>
                 <h3 class="font-bold text-sm text-slate-900 pb-2 border-b border-slate-100 mb-4 flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                    2. Spesifikasi Hardware &amp; Sistem
+                    2. Spesifikasi Hardware &amp; Sistem Operasi
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
@@ -122,11 +122,20 @@
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Sistem Operasi (OS)</label>
-                        <input type="text" name="os" x-model="formData.os" placeholder="Contoh: Windows 11 Pro 64-bit" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                        <input type="text" name="os" x-model="formData.os" placeholder="Contoh: Windows 11 Pro 64-bit / MacOS" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
                     </div>
+                </div>
+            </div>
 
+            <!-- Section 3: Jaringan, Perangkat Lunak & DxDiag -->
+            <div>
+                <h3 class="font-bold text-sm text-slate-900 pb-2 border-b border-slate-100 mb-4 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-teal-500"></span>
+                    3. Jaringan, Perangkat Lunak &amp; Bukti DxDiag
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Alamat IP Komputer (Opsional)</label>
+                        <label class="block font-semibold text-slate-700 mb-1">Alamat IP Komputer (IP Address)</label>
                         <input type="text" name="ip" x-model="formData.ip" placeholder="Contoh: 192.168.99.79" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
                     </div>
 
@@ -136,8 +145,23 @@
                     </div>
 
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Catatan Tambahan</label>
-                        <input type="text" name="catatan" x-model="formData.catatan" placeholder="Kondisi fisik, kelengkapan, dll." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                        <label class="block font-semibold text-slate-700 mb-1">Catatan / Software Khusus</label>
+                        <input type="text" name="catatan" x-model="formData.catatan" placeholder="Contoh: Adobe CC, CorelDRAW, Office 2021" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tautan Bukti Display (DxDiag)</label>
+                        <input type="url" name="displayLink" x-model="formData.displayLink" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tautan Bukti Sound (DxDiag)</label>
+                        <input type="url" name="soundLink" x-model="formData.soundLink" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tautan Bukti Input (DxDiag)</label>
+                        <input type="url" name="inputLink" x-model="formData.inputLink" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
                     </div>
                 </div>
             </div>
@@ -174,6 +198,9 @@
                 os: '',
                 ip: '',
                 passwordPc: '-',
+                displayLink: '',
+                soundLink: '',
+                inputLink: '',
                 catatan: ''
             },
             handleDrop(e) {

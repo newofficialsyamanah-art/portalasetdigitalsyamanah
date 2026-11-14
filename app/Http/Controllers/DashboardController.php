@@ -7,6 +7,9 @@ use App\Models\MikrotikAccount;
 use App\Models\Division;
 use App\Models\AppConfig;
 use App\Models\User;
+use App\Models\GuideBook;
+use App\Models\AppSystem;
+use App\Services\GuideBookService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -24,6 +27,10 @@ class DashboardController extends Controller
             Artisan::call('db:seed', ['--force' => true]);
         }
 
+        // Auto-initialize Guide Books & Master Systems table and built-in guides
+        GuideBook::ensureTableExists();
+        AppSystem::ensureTableExists();
+
         $user = Auth::user();
         if (!$user) {
             return redirect()->route('login');
@@ -32,14 +39,27 @@ class DashboardController extends Controller
         $activeTab = $request->query('tab', $user->role === 'general_affair' ? 'inventory' : 'spreadsheet');
         
         // General Affair restricted from certain tabs
-        if ($user->role === 'general_affair' && !in_array($activeTab, ['inventory', 'phones', 'pc'])) {
+        if ($user->role === 'general_affair' && !in_array($activeTab, ['inventory', 'phones', 'pc', 'guides'])) {
             $activeTab = 'inventory';
         }
 
         $submissions = Submission::orderBy('created_at', 'desc')->get();
+
+        // Auto-seed user hardware & software dataset if not yet loaded
+        if ($submissions->where('type', 'pc')->count() < 40) {
+            \App\Services\InventoryImportService::importAll();
+            $submissions = Submission::orderBy('created_at', 'desc')->get();
+        }
+
         $mikrotikAccounts = MikrotikAccount::orderBy('created_at', 'desc')->get();
         $divisions = Division::orderBy('name')->pluck('name')->toArray();
         $users = User::with('roles', 'permissions')->get();
+        $guideBooks = GuideBook::orderBy('is_pinned', 'desc')->orderBy('created_at', 'desc')->get();
+        $guideSystems = GuideBookService::getSystems();
+        $guideCategories = GuideBookService::getCategories();
+        $guideRoles = GuideBookService::getTargetRoles();
+        $systemFeaturesMap = GuideBookService::getSystemFeaturesMap();
+        $appSystems = AppSystem::orderBy('order_num')->orderBy('name')->get();
 
         $roles = class_exists(Role::class) && Schema::hasTable('roles')
             ? Role::with('permissions')->get() 
@@ -66,6 +86,9 @@ class DashboardController extends Controller
             'spreadsheetId' => AppConfig::get('spreadsheetId', ''),
             'driveFolderId' => AppConfig::get('driveFolderId', ''),
             'superadminPin' => AppConfig::get('superadminPin', '1234'),
+            'erpnextUrl' => AppConfig::get('erpnextUrl', 'https://syamanah4.sopwer.id'),
+            'erpnextApiKey' => AppConfig::get('erpnextApiKey', '43895e90883a899'),
+            'erpnextApiSecret' => AppConfig::get('erpnextApiSecret', '3d8c285da00a784'),
         ];
 
         return view('dashboard', compact(
@@ -80,7 +103,13 @@ class DashboardController extends Controller
             'deviceCount',
             'phoneCount',
             'totalSubmissions',
-            'config'
+            'config',
+            'guideBooks',
+            'guideSystems',
+            'guideCategories',
+            'guideRoles',
+            'systemFeaturesMap',
+            'appSystems'
         ));
     }
 }

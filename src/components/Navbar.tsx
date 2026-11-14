@@ -29,6 +29,7 @@ export type TabType =
   | 'phones'
   | 'mikrotik'
   | 'audit'
+  | 'guides'
   | 'pc'
   | 'akun'
   | 'superadmin'
@@ -129,14 +130,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="hidden sm:flex flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-white tracking-wider text-xs">
-                  PORTAL ASET DIGITAL
+                  ENTERPRISE ASSET MANAGEMENT
                 </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white">
-                  CV Syamanah
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white">
+                  EAM
                 </span>
               </div>
               <span className="text-[10px] text-slate-400 font-medium">
-                PT Generasi Sugih Sejahtera
+                CV Generasi Sugih Sejahtera
               </span>
             </div>
           </div>
@@ -156,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Laptop className="w-3.5 h-3.5 text-blue-300" />
                   <span>Laptop &amp; PC</span>
-                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full font-mono text-slate-200">
+                  <span className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">
                     {deviceCount}
                   </span>
                 </button>
@@ -171,7 +172,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Smartphone className="w-3.5 h-3.5 text-amber-300" />
                   <span>HP Android</span>
-                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full font-mono text-slate-200">
+                  <span className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">
                     {phoneCount}
                   </span>
                 </button>
@@ -213,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Table className="w-3.5 h-3.5 text-emerald-300" />
                   <span>Spreadsheet</span>
-                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full font-mono text-slate-200">
+                  <span className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">
                     {totalSubmissions}
                   </span>
                 </button>
@@ -228,7 +229,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Laptop className="w-3.5 h-3.5 text-blue-300" />
                   <span>Laptop &amp; PC</span>
-                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full font-mono text-slate-200">
+                  <span className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">
                     {deviceCount}
                   </span>
                 </button>
@@ -243,7 +244,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Smartphone className="w-3.5 h-3.5 text-amber-300" />
                   <span>HP Sales</span>
-                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full font-mono text-slate-200">
+                  <span className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">
                     {phoneCount}
                   </span>
                 </button>
