@@ -28,6 +28,7 @@
             </select>
 
             <!-- Excel Export & Import Actions -->
+            @can('manage excel')
             <button type="button" @click="openExportModal = true" class="px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs" title="Ekspor Data ke Excel (.xlsx)">
                 <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <span>Ekspor Excel</span>
@@ -37,6 +38,7 @@
                 <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 <span>Impor Excel</span>
             </button>
+            @endcan
 
             <!-- Refresh / Sync Button -->
             <form action="{{ route('sync.spreadsheet') }}" method="POST" class="inline">
@@ -140,9 +142,9 @@
 
                             <!-- Kredensial & Sandi (Masked for GA) -->
                             <td class="py-3.5 px-4" x-data="{ showPass: false }">
-                                @if(Auth::check() && Auth::user()->role === 'general_affair')
+                                @cannot('view credentials')
                                     <span class="inline-flex items-center gap-1 text-[11px] text-slate-400 font-mono italic">
-                                        🔒 Terlindung (GA)
+                                        🔒 Terlindung
                                     </span>
                                 @else
                                     <div class="flex items-center gap-2">
@@ -157,7 +159,7 @@
                                             <svg x-show="showPass" x-cloak class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
                                         </button>
                                     </div>
-                                @endif
+                                @endcannot
                             </td>
 
                             <!-- Waktu Input -->
@@ -168,14 +170,16 @@
                             <!-- Aksi -->
                             <td class="py-3.5 px-4 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
-                                    @if(!Auth::check() || Auth::user()->role !== 'general_affair')
+                                    @can('manage erpnext')
                                         <button type="button" @click="openErpPushFor('{{ $sub->id }}', '{{ addslashes($sub->nama . ' - ' . ($sub->data['computerName'] ?? ($sub->data['jenisHp'] ?? $sub->jenis_perangkat))) }}', '{{ addslashes($sub->departemen) }}', '{{ addslashes($sub->nama) }}', '{{ addslashes($sub->data['computerName'] ?? ($sub->data['jenisHp'] ?? 'IT-ASSET')) }}')" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition" title="Kirim Aset ini ke ERPNext">
                                             <span class="text-xs font-bold">⚡ ERP</span>
                                         </button>
+                                    @endcan
+                                    @can('delete records')
                                         <button @click="deleteTarget = { name: '{{ addslashes($sub->nama) }}', url: '{{ route('submissions.destroy', $sub->id) }}' }; openDeleteModal = true" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition" title="Hapus Aset">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         </button>
-                                    @endif
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

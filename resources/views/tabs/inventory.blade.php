@@ -31,6 +31,7 @@
                 <span>🔄 Sync Data (73)</span>
             </a>
 
+            @can('manage excel')
             <button type="button" @click="exportToExcel('pc')" class="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs" title="Ekspor Data PC & Laptop ke Excel">
                 <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <span>Ekspor PC</span>
@@ -40,9 +41,15 @@
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 <span>Impor</span>
             </button>
+            @endcan
 
-            <button @click="setTab('pc')" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
-                <span>+ Input PC Baru</span>
+            <!-- Panduan DxDiag Windows -->
+            <button type="button" @click="openDxDiagModal = true" class="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="Panduan Ekspor DxDiag Windows">
+                <span>📘 Panduan DxDiag</span>
+            </button>
+
+            <button type="button" @click="openPcModal = true" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                <span>➕ Input PC Baru</span>
             </button>
         </div>
     </div>
@@ -132,7 +139,7 @@
                         </div>
                     </div>
 
-                    <!-- DxDiag Links Section -->
+                    <!-- DxDiag Links & Attachments Section -->
                     @php
                         $hasLinks = (!empty($pc->data['displayLink']) && $pc->data['displayLink'] !== '-') ||
                                     (!empty($pc->data['soundLink']) && $pc->data['soundLink'] !== '-') ||
@@ -140,39 +147,58 @@
                     @endphp
                     @if($hasLinks)
                         <div class="pt-2 border-t border-slate-100">
-                            <button type="button" @click="showLinks = !showLinks" class="w-full py-1 px-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-[11px] font-semibold text-slate-600 flex items-center justify-between transition">
+                            <button type="button" @click="showLinks = !showLinks" class="w-full py-1.5 px-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-[11px] font-semibold text-slate-700 flex items-center justify-between transition">
                                 <span class="flex items-center gap-1.5">
-                                    <span>📄 Bukti DxDiag &amp; Spesifikasi Lengkap</span>
+                                    <span>📎 Bukti Lampiran DxDiag (Display, Sound, Input)</span>
                                 </span>
                                 <span x-text="showLinks ? '▲' : '▼'" class="text-[10px] text-slate-400"></span>
                             </button>
 
-                            <div x-show="showLinks" x-cloak class="mt-2 p-2 bg-slate-50/70 rounded-xl space-y-1.5 text-[11px]">
+                            <div x-show="showLinks" x-cloak class="mt-2 p-2 bg-slate-50/70 rounded-xl space-y-2 text-[11px]">
                                 @if(!empty($pc->data['displayLink']) && $pc->data['displayLink'] !== '-')
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-slate-500">Display / GPU:</span>
-                                        <a href="{{ $pc->data['displayLink'] }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 font-semibold underline flex items-center gap-0.5">
-                                            <span>Buka Drive ↗</span>
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-slate-600 font-medium flex items-center gap-1">
+                                            <span>🖥️</span> Display / GPU:
+                                        </span>
+                                        <a href="{{ $pc->data['displayLink'] }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] transition flex items-center gap-1 shadow-2xs shrink-0 max-w-[150px] truncate">
+                                            <span>{{ !empty($pc->data['displayLink_nama']) ? \Illuminate\Support\Str::limit($pc->data['displayLink_nama'], 16) : (str_starts_with($pc->data['displayLink'], '/uploads/') ? 'Lihat Bukti ↗' : 'Buka Tautan ↗') }}</span>
                                         </a>
                                     </div>
                                 @endif
                                 @if(!empty($pc->data['soundLink']) && $pc->data['soundLink'] !== '-')
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-slate-500">Audio / Sound:</span>
-                                        <a href="{{ $pc->data['soundLink'] }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 font-semibold underline flex items-center gap-0.5">
-                                            <span>Buka Drive ↗</span>
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-slate-600 font-medium flex items-center gap-1">
+                                            <span>🔊</span> Audio / Sound:
+                                        </span>
+                                        <a href="{{ $pc->data['soundLink'] }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-[10px] transition flex items-center gap-1 shadow-2xs shrink-0 max-w-[150px] truncate">
+                                            <span>{{ !empty($pc->data['soundLink_nama']) ? \Illuminate\Support\Str::limit($pc->data['soundLink_nama'], 16) : (str_starts_with($pc->data['soundLink'], '/uploads/') ? 'Lihat Bukti ↗' : 'Buka Tautan ↗') }}</span>
                                         </a>
                                     </div>
                                 @endif
                                 @if(!empty($pc->data['inputLink']) && $pc->data['inputLink'] !== '-')
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-slate-500">Input Devices:</span>
-                                        <a href="{{ $pc->data['inputLink'] }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 font-semibold underline flex items-center gap-0.5">
-                                            <span>Buka Drive ↗</span>
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-slate-600 font-medium flex items-center gap-1">
+                                            <span>⌨️</span> Input Devices:
+                                        </span>
+                                        <a href="{{ $pc->data['inputLink'] }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] transition flex items-center gap-1 shadow-2xs shrink-0 max-w-[150px] truncate">
+                                            <span>{{ !empty($pc->data['inputLink_nama']) ? \Illuminate\Support\Str::limit($pc->data['inputLink_nama'], 16) : (str_starts_with($pc->data['inputLink'], '/uploads/') ? 'Lihat Bukti ↗' : 'Buka Tautan ↗') }}</span>
                                         </a>
                                     </div>
                                 @endif
                             </div>
+                        </div>
+                    @endif
+
+                    <!-- Foto Fisik / Attachment Preview -->
+                    @if(!empty($pc->data['foto']))
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500 text-[11px] font-medium flex items-center gap-1.5">
+                                <span>📷</span>
+                                <span>Foto / Lampiran Unit:</span>
+                            </span>
+                            <a href="{{ $pc->data['foto'] }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-xl bg-teal-50 hover:bg-teal-100 text-[#3A7D8A] font-bold text-[11px] transition flex items-center gap-1 shadow-2xs">
+                                <span>Buka Berkas ↗</span>
+                            </a>
                         </div>
                     @endif
                 </div>
@@ -181,14 +207,17 @@
                 <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span class="text-[11px] text-slate-400 font-mono">{{ $pc->timestamp }}</span>
                     <div class="flex items-center gap-2.5">
-                        @if(!Auth::check() || Auth::user()->role !== 'general_affair')
+                        @can('manage erpnext')
                             <button type="button" @click="openErpPushFor('{{ $pc->id }}', '{{ addslashes($pc->nama . ' - ' . ($pc->data['computerName'] ?? 'Laptop/PC')) }}', '{{ addslashes($pc->departemen) }}', '{{ addslashes($pc->nama) }}', '{{ addslashes($pc->data['computerName'] ?? 'IT-ASSET') }}')" class="text-blue-600 hover:text-blue-800 font-semibold text-[11px] transition flex items-center gap-1">
                                 <span>⚡ Ke ERP</span>
                             </button>
+                        @endcan
+                        @can('delete records')
                             <button @click="deleteTarget = { name: '{{ addslashes($pc->nama) }}', url: '{{ route('submissions.destroy', $pc->id) }}' }; openDeleteModal = true" class="text-rose-500 hover:text-rose-700 font-semibold text-[11px] transition">
                                 Hapus
                             </button>
-                        @endif
+                        @endcan
+
                     </div>
                 </div>
             </div>

@@ -18,6 +18,11 @@ class ExcelController extends Controller
     public function export(Request $request)
     {
         $user = Auth::user();
+
+        if ($user && !$user->can('manage excel') && $user->role !== 'superadmin' && $user->role !== 'manager') {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki hak akses untuk mengekspor data Excel.'], 403);
+        }
+
         // Check if user has permission to view confidential credentials
         $canViewCredentials = $user && (
             $user->role === 'superadmin' || 
@@ -171,6 +176,11 @@ class ExcelController extends Controller
      */
     public function import(Request $request)
     {
+        $user = Auth::user();
+        if ($user && !$user->can('manage excel') && $user->role !== 'superadmin' && $user->role !== 'manager') {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki hak akses untuk mengimpor data Excel.'], 403);
+        }
+
         // 1. Check if parsed JSON payload is provided (via SheetJS)
         $pcList = $request->input('pcRecords', []);
         $akunList = $request->input('akunRecords', []);

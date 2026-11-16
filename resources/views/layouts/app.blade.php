@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Enterprise Asset Management') }}</title>
+    <title>{{ config('app.name', 'EAM - Enterprise Asset Management') }}</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,11 +81,193 @@
 </head>
 <body class="bg-[#F8F7F5] text-slate-800 min-h-screen flex flex-col antialiased" x-data="portalApp()">
 
-    <!-- Include Header / Navbar -->
+    <!-- Left Sidebar & Mobile Navigation -->
     @include('components.navbar')
 
-    <!-- Main Content Container -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 w-full space-y-6">
+    <!-- Right Side Content Wrapper (Shifted right by lg:pl-64 on desktop when sidebar is open) -->
+    <div :class="sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'" class="flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200">
+        
+        <!-- Sticky Top Header Bar with Hamburger Button & Module Breadcrumb -->
+        <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 h-16 flex items-center justify-between px-4 sm:px-6 shadow-xs select-none">
+            <div class="flex items-center gap-3">
+                <!-- Hamburger Menu Button (Desktop & Mobile) -->
+                <button @click="toggleSidebar()" type="button" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition flex items-center justify-center cursor-pointer shadow-2xs group" title="Buka / Tutup Sidebar (Hamburger Menu)">
+                    <svg class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+
+                <!-- Application Title & Module Breadcrumb -->
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
+                        EAM (Enterprise Asset Management)
+                    </span>
+                    <span class="text-slate-300 font-light hidden sm:inline">|</span>
+                    <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-[#3A7D8A] border border-slate-200/80 hidden sm:inline" x-text="{
+                        'spreadsheet': '📊 Master Spreadsheet 1:1',
+                        'inventory': '💻 Laptop & PC Workstation',
+                        'phones': '📱 Smartphone & Akun Sales',
+                        'mikrotik': '📶 Hotspot Jaringan MikroTik',
+                        'audit': '🛡️ Audit Kredensial Perusahaan',
+                        'guides': '📚 Guide Book & SOP Sistem',
+                        'pc': '➕ Formulir Input Laptop & PC',
+                        'akun': '➕ Formulir Input HP & Akun Sales',
+                        'superadmin': '👑 Pusat Kontrol Superadmin & RBAC'
+                    }[activeTab] || 'Portal EAM'"></span>
+                </div>
+            </div>
+
+            <!-- Right Side: Interactive User Profile Menu with Input Forms & Help -->
+            <div class="flex items-center gap-2.5">
+                @if(Auth::check())
+                    <div x-data="{ openProfileMenu: false }" class="relative" @click.outside="openProfileMenu = false">
+                        <!-- Profile Trigger Button -->
+                        <button @click="openProfileMenu = !openProfileMenu" 
+                                type="button" 
+                                class="flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl hover:bg-slate-100 transition cursor-pointer group border border-transparent hover:border-slate-200 select-none"
+                                title="Buka Menu Profil, Input Form &amp; Bantuan">
+                            <div class="hidden sm:flex flex-col text-right">
+                                <span class="text-xs font-bold text-slate-800 leading-tight group-hover:text-[#3A7D8A] transition-colors">
+                                    {{ Auth::user()->name }}
+                                </span>
+                                <span class="text-[10px] text-slate-500 font-mono">
+                                    {{ '@' . Auth::user()->username }}
+                                </span>
+                            </div>
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs uppercase shadow-2xs {{ Auth::user()->role === 'superadmin' ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-300' : (Auth::user()->role === 'manager' ? 'bg-blue-600 text-white ring-2 ring-blue-300' : 'bg-[#3A7D8A] text-white ring-2 ring-teal-200') }}">
+                                {{ substr(Auth::user()->name, 0, 1) }}
+                            </div>
+                            <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition-transform duration-200" :class="openProfileMenu ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Profile Dropdown Menu with Input Form & Help -->
+                        <div x-show="openProfileMenu" 
+                             x-cloak 
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
+                             class="absolute right-0 mt-2 w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2.5 z-50 text-xs">
+                            
+                            <!-- Header Info Profil -->
+                            <div class="p-3 bg-gradient-to-br from-slate-50 to-slate-100/70 rounded-2xl border border-slate-100 mb-2">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm uppercase shadow-xs shrink-0 {{ Auth::user()->role === 'superadmin' ? 'bg-amber-500 text-slate-950' : (Auth::user()->role === 'manager' ? 'bg-blue-600 text-white' : 'bg-[#3A7D8A] text-white') }}">
+                                        {{ substr(Auth::user()->name, 0, 1) }}
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-extrabold text-xs text-slate-900 truncate">
+                                            {{ Auth::user()->name }}
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 font-mono truncate">
+                                            {{ '@' . Auth::user()->username }}
+                                        </div>
+                                        <div class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold {{ Auth::user()->role === 'superadmin' ? 'bg-amber-100 text-amber-800' : (Auth::user()->role === 'manager' ? 'bg-blue-100 text-blue-800' : 'bg-teal-100 text-teal-800') }}">
+                                            <span>{{ Auth::user()->role === 'superadmin' ? '👑 Superadmin' : (Auth::user()->role === 'manager' ? '👔 Manager' : '🏢 General Affair') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 1: INPUT FORMULIR ASET -->
+                            <div class="py-1">
+                                <div class="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-[#3A7D8A]"></span>
+                                    <span>Input Formulir Aset</span>
+                                </div>
+                                <div class="space-y-0.5 mt-1">
+                                    <button type="button" 
+                                            @click="openPcModal = true; openProfileMenu = false" 
+                                            class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition cursor-pointer font-medium group">
+                                        <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0 group-hover:scale-105 transition-transform">
+                                            💻
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-bold text-xs text-slate-800">Input Laptop &amp; PC</div>
+                                            <div class="text-[10px] text-slate-400 truncate">Pop-up form &amp; DxDiag auto-fill</div>
+                                        </div>
+                                    </button>
+
+                                    <button type="button" 
+                                            @click="openAkunModal = true; openProfileMenu = false" 
+                                            class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition cursor-pointer font-medium group">
+                                        <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0 group-hover:scale-105 transition-transform">
+                                            📱
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-bold text-xs text-slate-800">Input HP &amp; Akun Sales</div>
+                                            <div class="text-[10px] text-slate-400 truncate">Pop-up form &amp; akun operasional</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Divider -->
+                            <div class="my-1.5 border-t border-slate-100"></div>
+
+                            <!-- Section 2: PUSAT BANTUAN & PANDUAN (Help) -->
+                            <div class="py-1">
+                                <div class="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span>Pusat Bantuan (Help)</span>
+                                </div>
+                                <div class="space-y-0.5 mt-1">
+                                    <button type="button" 
+                                            @click="openDxDiagModal = true; openProfileMenu = false" 
+                                            class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition cursor-pointer font-medium group">
+                                        <div class="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-sm shrink-0 group-hover:scale-105 transition-transform">
+                                            ⚡
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-bold text-xs text-slate-800">Panduan Ekspor DxDiag</div>
+                                            <div class="text-[10px] text-slate-400 truncate">Cara cepat ambil spek Windows</div>
+                                        </div>
+                                    </button>
+
+                                    <button type="button" 
+                                            @click="setTab('guides'); openProfileMenu = false" 
+                                            class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition cursor-pointer font-medium group">
+                                        <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0 group-hover:scale-105 transition-transform">
+                                            📚
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-bold text-xs text-slate-800">Guide Book &amp; SOP Sistem</div>
+                                            <div class="text-[10px] text-slate-400 truncate">Dokumen panduan operasional</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Divider -->
+                            <div class="my-1.5 border-t border-slate-100"></div>
+
+                            <!-- Section 3: Logout -->
+                            <div class="p-0.5">
+                                <form action="{{ route('logout') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" 
+                                            class="w-full px-3 py-2 rounded-xl text-left flex items-center gap-2.5 text-rose-600 hover:bg-rose-50 font-bold transition cursor-pointer">
+                                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                        </svg>
+                                        <span>Keluar (Logout)</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <button @click="openLoginModal = true" type="button" class="px-4 py-2 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs transition cursor-pointer shadow-xs">
+                        Masuk (Login)
+                    </button>
+                @endif
+            </div>
+        </header>
+
+        <!-- Main Content Container -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full space-y-6">
         
         <!-- Flash Alerts -->
         @if(session('success'))
@@ -151,9 +333,6 @@
                         </p>
                     </div>
                 </div>
-                <button @click="openLoginModal = true" class="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-[#0F1D2E] hover:bg-slate-50 font-bold text-xs shrink-0 transition shadow-2xs self-start sm:self-auto">
-                    Ganti Akun
-                </button>
             </div>
         @endif
 
@@ -162,6 +341,7 @@
 
     <!-- Include Footer -->
     @include('components.footer')
+    </div>
 
     <!-- Include Universal Modals (Including Excel Import & Export) -->
     @include('components.modals')
@@ -169,9 +349,65 @@
     <script>
         function portalApp() {
             return {
-                activeTab: '{{ $activeTab ?? 'spreadsheet' }}',
+                activeTab: '{{ in_array($activeTab ?? '', ['pc', 'akun']) ? ($activeTab === 'pc' ? 'inventory' : 'phones') : ($activeTab ?? 'spreadsheet') }}',
                 searchTerm: '',
                 filterDept: 'all',
+                sidebarOpen: window.innerWidth >= 1024,
+                openPcModal: {{ ($activeTab ?? '') === 'pc' ? 'true' : 'false' }},
+                openAkunModal: {{ ($activeTab ?? '') === 'akun' ? 'true' : 'false' }},
+                toggleSidebar() {
+                    this.sidebarOpen = !this.sidebarOpen;
+                },
+                setTab(tab) {
+                    if (tab === 'pc') {
+                        this.activeTab = 'inventory';
+                        this.openPcModal = true;
+                    } else if (tab === 'akun') {
+                        this.activeTab = 'phones';
+                        this.openAkunModal = true;
+                    } else {
+                        this.activeTab = tab;
+                    }
+                    try {
+                        const url = new URL(window.location);
+                        url.searchParams.set('tab', this.activeTab);
+                        window.history.replaceState(null, '', url);
+                    } catch (e) {
+                        window.history.replaceState(null, '', '?tab=' + this.activeTab);
+                    }
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    if (window.innerWidth < 1024) {
+                        this.sidebarOpen = false;
+                    }
+                },
+                init() {
+                    const params = new URLSearchParams(window.location.search);
+                    const tab = params.get('tab');
+                    if (tab === 'pc') {
+                        this.activeTab = 'inventory';
+                        this.openPcModal = true;
+                    } else if (tab === 'akun') {
+                        this.activeTab = 'phones';
+                        this.openAkunModal = true;
+                    }
+                    window.addEventListener('popstate', () => {
+                        const p = new URLSearchParams(window.location.search);
+                        const t = p.get('tab');
+                        if (t) {
+                            if (t === 'pc') {
+                                this.activeTab = 'inventory';
+                                this.openPcModal = true;
+                            } else if (t === 'akun') {
+                                this.activeTab = 'phones';
+                                this.openAkunModal = true;
+                            } else {
+                                this.activeTab = t;
+                            }
+                        }
+                    });
+                },
+                showInlinePcForm: false,
+                showInlinePhoneForm: false,
                 openLoginModal: false,
                 openQuickAdd: false,
                 openMobileMenu: false,
@@ -181,6 +417,7 @@
                 openDriveModal: false,
                 openEditModal: false,
                 openDeleteModal: false,
+                openErpModal: false,
                 
                 // Excel Export & Import States
                 openExportModal: false,
@@ -289,8 +526,7 @@
                 },
 
                 openErpPushFor(id, name, dept, user, code) {
-                    this.setTab('superadmin');
-                    this.subTab = 'erpnext';
+                    this.openErpModal = true;
                     this.erpPushForm.submission_id = id || '';
                     this.erpPushForm.asset_name = name || 'Aset Kantor';
                     this.erpPushForm.department = dept || 'Sales Jaket';

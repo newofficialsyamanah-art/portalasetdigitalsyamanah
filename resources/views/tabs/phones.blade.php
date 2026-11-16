@@ -27,6 +27,7 @@
                 @endforeach
             </select>
 
+            @can('manage excel')
             <button type="button" @click="exportToExcel('akun')" class="px-3 py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs" title="Ekspor Data HP & Akun ke Excel">
                 <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <span>Ekspor HP</span>
@@ -36,9 +37,10 @@
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 <span>Impor</span>
             </button>
+            @endcan
 
-            <button @click="setTab('akun')" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow-sm transition flex items-center gap-1.5">
-                <span>+ Input HP &amp; Akun Baru</span>
+            <button type="button" @click="openAkunModal = true" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                <span>➕ Input HP &amp; Akun Baru</span>
             </button>
         </div>
     </div>
@@ -65,9 +67,16 @@
                                 <p class="text-[11px] text-slate-400"><span class="font-semibold text-slate-600">{{ $hp->departemen }}</span></p>
                             </div>
                         </div>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                            {{ $hp->data['bekasHp'] ?? 'Pengadaan' }}
-                        </span>
+                        <div class="text-right">
+                            @php
+                                $bekasHp = $hp->data['bekasHp'] ?? 'Pengadaan';
+                                $bekasSiapa = $hp->data['bekasSiapa'] ?? '';
+                                $isBekas = str_contains(strtolower($bekasHp), 'bekas') || !empty($bekasSiapa);
+                            @endphp
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold {{ $isBekas ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-100 text-emerald-900' }}">
+                                {{ $isBekas ? ('Bekas (' . ($bekasSiapa ?: 'Eks Tim Lain') . ')') : $bekasHp }}
+                            </span>
+                        </div>
                     </div>
 
                     <!-- Specs Breakdown -->
@@ -81,22 +90,60 @@
                             <span class="font-mono font-semibold text-emerald-700">{{ $hp->data['noWa'] ?? '-' }}</span>
                         </div>
                         
-                        @if(!Auth::check() || Auth::user()->role !== 'general_affair')
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span class="text-slate-400">Email Utama:</span>
-                                <span class="font-mono text-slate-800 truncate max-w-[170px]">{{ $hp->data['email1'] ?? '-' }}</span>
-                            </div>
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span class="text-slate-400">Akun Instagram:</span>
-                                <span class="font-mono text-slate-800 truncate max-w-[170px]">&#64;{{ $hp->data['ig1'] ?? '-' }}</span>
-                            </div>
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span class="text-slate-400">Akun Facebook:</span>
-                                <span class="font-mono text-slate-800 truncate max-w-[170px]">{{ $hp->data['fb1'] ?? '-' }}</span>
-                            </div>
+                        @can('view credentials')
+                            @if(!empty($hp->data['accounts']) && is_array($hp->data['accounts']))
+                                <div class="pt-2 border-t border-slate-100 space-y-1.5">
+                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Akun Operasional Sales:</div>
+                                    @foreach($hp->data['accounts'] as $acc)
+                                        <div class="flex items-center justify-between text-[11px] p-1.5 rounded-lg bg-slate-50 border border-slate-100/80">
+                                            <span class="text-slate-600 font-semibold truncate max-w-[110px]">{{ $acc['platform'] ?? 'Akun' }}:</span>
+                                            <div class="flex items-center gap-1.5 font-mono">
+                                                <span class="font-bold text-slate-800 truncate max-w-[110px]" title="{{ $acc['username'] ?? '-' }}">{{ $acc['username'] ?? '-' }}</span>
+                                                @if(!empty($acc['password']) && $acc['password'] !== '-')
+                                                    <span class="text-[9px] text-amber-800 bg-amber-100/80 px-1 py-0.2 rounded font-mono">({{ $acc['password'] }})</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="space-y-1.5 pt-1 border-t border-slate-100">
+                                    @if(!empty($hp->data['email1']))
+                                        <div class="flex items-center justify-between text-slate-600">
+                                            <span class="text-slate-400">Email:</span>
+                                            <span class="font-mono text-slate-800 truncate max-w-[170px]">{{ $hp->data['email1'] }}</span>
+                                        </div>
+                                    @endif
+                                    @if(!empty($hp->data['ig1']))
+                                        <div class="flex items-center justify-between text-slate-600">
+                                            <span class="text-slate-400">Instagram:</span>
+                                            <span class="font-mono text-slate-800 truncate max-w-[170px]">&#64;{{ $hp->data['ig1'] }}</span>
+                                        </div>
+                                    @endif
+                                    @if(!empty($hp->data['fb1']))
+                                        <div class="flex items-center justify-between text-slate-600">
+                                            <span class="text-slate-400">Facebook:</span>
+                                            <span class="font-mono text-slate-800 truncate max-w-[170px]">{{ $hp->data['fb1'] }}</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
                         @else
                             <div class="p-2 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-400 italic">
-                                🔒 Kredensial email &amp; akun sosmed terlindungi (Peran General Affair)
+                                🔒 Kredensial akun operasional sales terlindungi
+                            </div>
+                        @endcan
+
+                        <!-- Foto Fisik HP Attachment -->
+                        @if(!empty($hp->data['foto']))
+                            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                                <span class="text-slate-500 text-[11px] font-medium flex items-center gap-1.5">
+                                    <span>📷</span>
+                                    <span>Foto Unit HP:</span>
+                                </span>
+                                <a href="{{ $hp->data['foto'] }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[11px] transition flex items-center gap-1 shadow-2xs">
+                                    <span>Lihat Foto ↗</span>
+                                </a>
                             </div>
                         @endif
                     </div>
@@ -106,14 +153,16 @@
                 <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span class="text-[11px] text-slate-400 font-mono">{{ $hp->timestamp }}</span>
                     <div class="flex items-center gap-2.5">
-                        @if(!Auth::check() || Auth::user()->role !== 'general_affair')
+                        @can('manage erpnext')
                             <button type="button" @click="openErpPushFor('{{ $hp->id }}', '{{ addslashes($hp->nama . ' - ' . ($hp->data['jenisHp'] ?? 'Smartphone')) }}', '{{ addslashes($hp->departemen) }}', '{{ addslashes($hp->nama) }}', '{{ addslashes($hp->data['jenisHp'] ?? 'IT-PHONE') }}')" class="text-amber-600 hover:text-amber-800 font-semibold text-[11px] transition flex items-center gap-1">
                                 <span>⚡ Ke ERP</span>
                             </button>
+                        @endcan
+                        @can('delete records')
                             <button @click="deleteTarget = { name: '{{ addslashes($hp->nama) }}', url: '{{ route('submissions.destroy', $hp->id) }}' }; openDeleteModal = true" class="text-rose-500 hover:text-rose-700 font-semibold text-[11px] transition">
                                 Hapus
                             </button>
-                        @endif
+                        @endcan
                     </div>
                 </div>
             </div>

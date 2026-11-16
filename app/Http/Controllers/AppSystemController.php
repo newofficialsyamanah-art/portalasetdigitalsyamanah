@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AppSystem;
 use App\Models\GuideBook;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class AppSystemController extends Controller
@@ -28,6 +29,14 @@ class AppSystemController extends Controller
     public function store(Request $request)
     {
         AppSystem::ensureTableExists();
+
+        $user = Auth::user();
+        if ($user && !$user->can('manage systems') && $user->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk menambah master sistem.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk menambah master sistem.');
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:150|unique:app_systems,name',
@@ -80,6 +89,15 @@ class AppSystemController extends Controller
     public function update(Request $request, int $id)
     {
         AppSystem::ensureTableExists();
+
+        $user = Auth::user();
+        if ($user && !$user->can('manage systems') && $user->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk memperbarui master sistem.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk memperbarui master sistem.');
+        }
+
         $system = AppSystem::findOrFail($id);
 
         $validated = $request->validate([
@@ -136,6 +154,15 @@ class AppSystemController extends Controller
     public function destroy(Request $request, int $id)
     {
         AppSystem::ensureTableExists();
+
+        $user = Auth::user();
+        if ($user && !$user->can('manage systems') && $user->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk menghapus master sistem.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk menghapus master sistem.');
+        }
+
         $system = AppSystem::find($id);
 
         if (!$system) {
@@ -164,6 +191,15 @@ class AppSystemController extends Controller
     public function clearAll(Request $request)
     {
         AppSystem::ensureTableExists();
+
+        $user = Auth::user();
+        if ($user && !$user->can('manage systems') && $user->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk mengosongkan master sistem.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk mengosongkan master sistem.');
+        }
+
         $count = AppSystem::count();
         AppSystem::truncate();
 

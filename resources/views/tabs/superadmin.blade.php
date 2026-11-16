@@ -11,30 +11,35 @@
                     <h2 class="font-black text-lg sm:text-xl text-white tracking-wide">Pusat Kontrol Superadmin</h2>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 uppercase">RBAC Spatie Active</span>
                 </div>
-                <p class="text-xs text-slate-300 mt-1">Kelola master divisi/tim, hak akses pengguna, integrasi Google Apps Script, dan CRUD penuh seluruh modul</p>
+                <p class="text-xs text-slate-300 mt-1">Kelola master divisi/tim kerja, akun pengguna, wewenang RBAC Spatie, dan master sistem &amp; fitur</p>
             </div>
         </div>
 
-        <!-- Sub-Nav Pill Buttons -->
+        <!-- Sub-Nav Pill Buttons (Fokus Master & RBAC Admin) -->
         <div class="flex flex-wrap items-center gap-1.5 bg-slate-800/80 p-1.5 rounded-2xl border border-slate-700">
+            @if(Auth::user()->hasRole('superadmin') || Auth::user()->can('manage users'))
             <button @click="subTab = 'users'" :class="subTab === 'users' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-xl text-xs transition">
                 👥 Kelola Pengguna
             </button>
+            @endif
+
+            @if(Auth::user()->hasRole('superadmin') || Auth::user()->can('manage rbac'))
             <button @click="subTab = 'rbac'" :class="subTab === 'rbac' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-xl text-xs transition">
                 🛡️ Hak Akses &amp; Peran (RBAC)
             </button>
+            @endif
+
+            @if(Auth::user()->hasRole('superadmin') || Auth::user()->can('manage systems'))
             <button @click="subTab = 'systems'" :class="subTab === 'systems' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5">
                 <span>🖥️ Kelola Sistem &amp; Fitur</span>
             </button>
+            @endif
+
+            @if(Auth::user()->hasRole('superadmin') || Auth::user()->can('manage divisions'))
             <button @click="subTab = 'divisions'" :class="subTab === 'divisions' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-xl text-xs transition">
                 🏢 Kelola Divisi &amp; Tim
             </button>
-            <button @click="subTab = 'config'" :class="subTab === 'config' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-xl text-xs transition">
-                ⚙️ Integrasi Spreadsheet
-            </button>
-            <button @click="subTab = 'erpnext'" :class="subTab === 'erpnext' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5">
-                <span>⚡ Integrasi ERPNext</span>
-            </button>
+            @endif
         </div>
     </div>
 
@@ -304,47 +309,122 @@
     <!-- Sub-Tab 2: Matriks Hak Akses & Peran Spatie RBAC -->
     <div x-show="subTab === 'rbac'" x-cloak class="space-y-6">
         @php
-            $permissionMeta = [
-                'view credentials' => [
-                    'title' => 'Melihat Kredensial & Sandi Akun',
-                    'desc' => 'Dapat melihat password email perusahaan, media sosial, dan akun rahasia.',
-                    'icon' => '👁️'
+            $permissionMeta = $permissionMeta ?? \App\Services\RbacService::getPermissionsDefinition();
+            
+            // Kelompokkan izin berdasarkan kategori
+            $categorizedPermissions = [];
+            foreach ($permissionMeta as $name => $meta) {
+                $cat = $meta['category'] ?? 'Lainnya';
+                if (!isset($categorizedPermissions[$cat])) {
+                    $categorizedPermissions[$cat] = [];
+                }
+                $categorizedPermissions[$cat][$name] = $meta;
+            }
+
+            // Kategori icons & badge styling
+            $categoryMeta = [
+                'Inventaris Perangkat' => ['icon' => '💻', 'color' => 'blue', 'badge' => 'bg-blue-100 text-blue-800 border-blue-200'],
+                'Keamanan & Kredensial' => ['icon' => '🛡️', 'color' => 'rose', 'badge' => 'bg-rose-100 text-rose-800 border-rose-200'],
+                'Jaringan & Hotspot' => ['icon' => '📶', 'color' => 'teal', 'badge' => 'bg-teal-100 text-teal-800 border-teal-200'],
+                'Dokumentasi & SOP' => ['icon' => '📚', 'color' => 'amber', 'badge' => 'bg-amber-100 text-amber-800 border-amber-200'],
+                'Master Superadmin' => ['icon' => '🖥️', 'color' => 'purple', 'badge' => 'bg-purple-100 text-purple-800 border-purple-200'],
+                'Pusat Kontrol Akun' => ['icon' => '👥', 'color' => 'indigo', 'badge' => 'bg-indigo-100 text-indigo-800 border-indigo-200'],
+                'Integrasi Sistem' => ['icon' => '⚡', 'color' => 'sky', 'badge' => 'bg-sky-100 text-sky-800 border-sky-200'],
+                'Olah Data' => ['icon' => '📗', 'color' => 'emerald', 'badge' => 'bg-emerald-100 text-emerald-800 border-emerald-200'],
+            ];
+
+            // Standar rekomendasi hak akses per peran sistem
+            $rolePresets = [
+                'superadmin' => array_keys($permissionMeta),
+                'manager' => [
+                    'manage inventory',
+                    'view credentials',
+                    'manage mikrotik',
+                    'view guidebooks',
+                    'manage guidebooks',
+                    'manage systems',
+                    'manage divisions',
+                    'manage excel',
+                    'delete records',
                 ],
-                'manage users' => [
-                    'title' => 'Kelola Pengguna & Hak Akses',
-                    'desc' => 'Menambah user baru, mengubah peran (role), dan mereset password akun.',
-                    'icon' => '👥'
-                ],
-                'manage divisions' => [
-                    'title' => 'Kelola Master Divisi / Tim',
-                    'desc' => 'Menambah dan menghapus master departemen operasional Syamanah.',
-                    'icon' => '🏢'
-                ],
-                'manage inventory' => [
-                    'title' => 'Kelola Inventaris Laptop, PC & HP',
-                    'desc' => 'Input spesifikasi hardware baru, mengubah aset, dan import DxDiag.',
-                    'icon' => '💻'
-                ],
-                'manage mikrotik' => [
-                    'title' => 'Kelola Hotspot MikroTik',
-                    'desc' => 'Generate voucher hotspot, kelola limit bandwidth, dan akun internet.',
-                    'icon' => '📡'
-                ],
-                'delete records' => [
-                    'title' => 'Hapus Data & Submisi',
-                    'desc' => 'Dapat menghapus baris data laptop, PC, HP, dan akun voucher secara permanen.',
-                    'icon' => '🗑️'
-                ],
-                'manage guidebooks' => [
-                    'title' => 'Kelola Buku Panduan & SOP Sistem',
-                    'desc' => 'Dapat menambah, mengubah, dan menghapus dokumen SOP serta buku panduan sistem.',
-                    'icon' => '📚'
+                'general_affair' => [
+                    'manage inventory',
+                    'view guidebooks',
                 ],
             ];
         @endphp
 
+        <!-- Overview & RBAC System Status Banner -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white border border-indigo-500/30 shadow-lg space-y-4">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 flex items-center justify-center font-bold text-2xl shrink-0 shadow-inner">
+                        🛡️
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-extrabold text-base sm:text-lg text-white">Matriks Hak Akses Spatie RBAC (Enterprise)</h3>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                {{ count($permissionMeta) }} Permissions Aktif
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                            Pengaturan wewenang pengguna berbasis peran (Role-Based Access Control) terintegrasi Spatie Laravel. Setiap peran dapat disesuaikan izinnya per modul, sementara Superadmin memegang Master Bypass penuh.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="text-center px-4 py-2 rounded-2xl bg-white/5 border border-white/10">
+                        <div class="text-lg font-black text-amber-400 font-mono">{{ count($permissionMeta) }}</div>
+                        <div class="text-[10px] text-slate-400 font-semibold uppercase">Izin Granular</div>
+                    </div>
+                    <div class="text-center px-4 py-2 rounded-2xl bg-white/5 border border-white/10">
+                        <div class="text-lg font-black text-indigo-300 font-mono">{{ $roles->count() }}</div>
+                        <div class="text-[10px] text-slate-400 font-semibold uppercase">Peran (Roles)</div>
+                    </div>
+                    <div class="text-center px-4 py-2 rounded-2xl bg-white/5 border border-white/10">
+                        <div class="text-lg font-black text-emerald-400 font-mono">{{ count($categorizedPermissions) }}</div>
+                        <div class="text-[10px] text-slate-400 font-semibold uppercase">Kategori Modul</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Architecture Explainer -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-xs border-t border-slate-800">
+                <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5">
+                    <span class="text-base shrink-0">👑</span>
+                    <div>
+                        <span class="font-bold text-amber-300 block">Superadmin (Bypass Master)</span>
+                        <p class="text-[11px] text-amber-200/80 leading-tight mt-0.5">Memiliki seluruh {{ count($permissionMeta) }} hak akses permanen. Tidak dapat dikunci demi keamanan sistem.</p>
+                    </div>
+                </div>
+                <div class="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-2.5">
+                    <span class="text-base shrink-0">👔</span>
+                    <div>
+                        <span class="font-bold text-blue-300 block">Manager Operasional</span>
+                        <p class="text-[11px] text-blue-200/80 leading-tight mt-0.5">Wewenang manajerial: inventaris, kredensial, SOP, divisi, sistem &amp; export data.</p>
+                    </div>
+                </div>
+                <div class="p-3 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-start gap-2.5">
+                    <span class="text-base shrink-0">🏢</span>
+                    <div>
+                        <span class="font-bold text-teal-300 block">General Affair (GA)</span>
+                        <p class="text-[11px] text-teal-200/80 leading-tight mt-0.5">Fokus pendataan inventaris fisik PC/HP tanpa akses melihat kata sandi sensitif.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Add Custom Role Box -->
-        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm" x-data="{
+            checkAll(form) {
+                form.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = true);
+            },
+            uncheckAll(form) {
+                form.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+            }
+        }">
             <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">
@@ -357,38 +437,67 @@
                 </div>
             </div>
 
-            <form action="{{ route('superadmin.roles.store') }}" method="POST" class="space-y-4 text-xs">
+            <form action="{{ route('superadmin.roles.store') }}" method="POST" class="space-y-5 text-xs" x-ref="newRoleForm">
                 @csrf
                 <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1">
                         <label class="block font-semibold text-slate-700 mb-1">Nama Peran Baru (Role Name)</label>
-                        <input type="text" name="name" required placeholder="Contoh: it_support, supervisor, auditor" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                        <input type="text" name="name" required placeholder="Contoh: it_support, auditor, supervisor, hr_lead" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+                        <p class="text-[10px] text-slate-400 mt-1">Nama peran akan otomatis diubah menjadi format huruf kecil tanpa spasi (slug: <code>it_support</code>).</p>
                     </div>
                     <div class="self-end">
-                        <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-105 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2">
-                            <span>+ Buat Role Baru</span>
+                        <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-105 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer">
+                            <span>+ Simpan Role Baru</span>
                         </button>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-2">Pilih Hak Akses Awal untuk Role Baru:</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        @foreach($allPermissions as $perm)
+                <div class="pt-2 border-t border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <label class="font-bold text-slate-800 text-xs">Pilih Hak Akses Awal untuk Role Baru:</label>
+                            <p class="text-[11px] text-slate-500">Centang izin yang diberikan kepada peran baru ini</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="checkAll($refs.newRoleForm)" class="px-2.5 py-1 text-[11px] font-semibold text-purple-700 hover:bg-purple-50 rounded-lg border border-purple-200 transition cursor-pointer">
+                                ✓ Pilih Semua
+                            </button>
+                            <button type="button" @click="uncheckAll($refs.newRoleForm)" class="px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition cursor-pointer">
+                                ✕ Kosongkan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Categorized Permission Grid -->
+                    <div class="space-y-4">
+                        @foreach($categorizedPermissions as $categoryName => $perms)
                             @php
-                                $meta = $permissionMeta[$perm->name] ?? [
-                                    'title' => $perm->name,
-                                    'desc' => 'Izin akses sistem ' . $perm->name,
-                                    'icon' => '🔑'
-                                ];
+                                $cMeta = $categoryMeta[$categoryName] ?? ['icon' => '📁', 'badge' => 'bg-slate-100 text-slate-700 border-slate-200'];
                             @endphp
-                            <label class="p-3 rounded-2xl border border-slate-200 hover:border-purple-300 bg-slate-50/50 hover:bg-purple-50/30 transition flex items-start gap-2.5 cursor-pointer">
-                                <input type="checkbox" name="permissions[]" value="{{ $perm->name }}" class="mt-0.5 rounded text-purple-600 focus:ring-0">
-                                <div>
-                                    <div class="font-bold text-slate-800 text-[11px]">{{ $meta['icon'] }} {{ $meta['title'] }}</div>
-                                    <div class="text-[10px] text-slate-500 leading-tight mt-0.5">{{ $meta['desc'] }}</div>
+                            <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase border {{ $cMeta['badge'] }}">
+                                        <span>{{ $cMeta['icon'] }}</span>
+                                        <span>{{ $categoryName }}</span>
+                                        <span class="opacity-70">({{ count($perms) }})</span>
+                                    </span>
                                 </div>
-                            </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                    @foreach($perms as $permName => $meta)
+                                        <label class="p-3 rounded-xl border border-slate-200 hover:border-purple-300 bg-white hover:bg-purple-50/30 transition flex items-start gap-2.5 cursor-pointer select-none">
+                                            <input type="checkbox" name="permissions[]" value="{{ $permName }}" class="mt-0.5 rounded text-purple-600 focus:ring-0">
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="text-sm shrink-0">{{ $meta['icon'] }}</span>
+                                                    <span class="font-bold text-slate-800 text-[11px] truncate">{{ $meta['title'] }}</span>
+                                                </div>
+                                                <div class="text-[10px] text-slate-500 leading-tight mt-0.5">{{ $meta['desc'] }}</div>
+                                                <div class="mt-1 font-mono text-[9px] text-slate-400">{{ $permName }}</div>
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
                         @endforeach
                     </div>
                 </div>
@@ -396,81 +505,196 @@
         </div>
 
         <!-- Role Permissions Matrix Grid -->
-        <div class="space-y-4">
+        <div class="space-y-5">
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="font-bold text-sm text-slate-900">Matriks Hak Akses Spatie per Peran</h3>
-                    <p class="text-[11px] text-slate-500">Centang atau hilangkan centang hak akses untuk setiap peran, lalu klik tombol simpan</p>
+                    <p class="text-[11px] text-slate-500">Kelola dan perbarui wewenang masing-masing peran secara fleksibel sesuai kebijakan perusahaan</p>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4">
+            <div class="grid grid-cols-1 gap-5">
                 @foreach($roles as $r)
                     @php
                         $isCoreRole = in_array($r->name, ['superadmin', 'manager', 'general_affair']);
+                        $isSuperadmin = $r->name === 'superadmin';
                         $rolePermNames = $r->permissions->pluck('name')->toArray();
+                        $rolePermCount = count($rolePermNames);
+                        $totalPermsCount = count($permissionMeta);
+                        $preset = $rolePresets[$r->name] ?? null;
                     @endphp
-                    <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+
+                    <div class="bg-white rounded-3xl p-6 border {{ $isSuperadmin ? 'border-amber-300 shadow-md ring-1 ring-amber-200/50' : 'border-slate-100 shadow-sm' }} space-y-4"
+                         x-data="{
+                             applyPreset(permsArray) {
+                                 let form = $el.querySelector('form');
+                                 if (!form) return;
+                                 form.querySelectorAll('input[type=checkbox]').forEach(cb => {
+                                     cb.checked = permsArray.includes(cb.value);
+                                 });
+                             },
+                             checkAll() {
+                                 let form = $el.querySelector('form');
+                                 if (!form) return;
+                                 form.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = true);
+                             },
+                             uncheckAll() {
+                                 let form = $el.querySelector('form');
+                                 if (!form) return;
+                                 form.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+                             }
+                         }">
+                        
+                        <!-- Role Card Header -->
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-2xl {{ $r->name === 'superadmin' ? 'bg-amber-100 text-amber-800' : ($r->name === 'manager' ? 'bg-blue-100 text-blue-800' : 'bg-teal-100 text-teal-800') }} flex items-center justify-center font-black text-base shrink-0">
-                                    {{ $r->name === 'superadmin' ? '👑' : ($r->name === 'manager' ? '👔' : '🏢') }}
+                                <div class="w-11 h-11 rounded-2xl {{ $isSuperadmin ? 'bg-amber-100 text-amber-800' : ($r->name === 'manager' ? 'bg-blue-100 text-blue-800' : ($r->name === 'general_affair' ? 'bg-teal-100 text-teal-800' : 'bg-purple-100 text-purple-800')) }} flex items-center justify-center font-black text-xl shrink-0 shadow-xs">
+                                    {{ $isSuperadmin ? '👑' : ($r->name === 'manager' ? '👔' : ($r->name === 'general_affair' ? '🏢' : '🛡️')) }}
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2">
-                                        <h4 class="font-bold text-sm text-slate-900 uppercase tracking-wide">{{ str_replace('_', ' ', $r->name) }}</h4>
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $isCoreRole ? 'bg-slate-100 text-slate-600' : 'bg-purple-100 text-purple-700' }}">
+                                        <h4 class="font-extrabold text-sm text-slate-900 uppercase tracking-wide">{{ str_replace('_', ' ', $r->name) }}</h4>
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $isCoreRole ? 'bg-slate-100 text-slate-700' : 'bg-purple-100 text-purple-700' }}">
                                             {{ $isCoreRole ? 'Sistem Bawaan' : 'Role Kustom' }}
                                         </span>
+                                        @if($isSuperadmin)
+                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                                Master Bypass
+                                            </span>
+                                        @endif
                                     </div>
-                                    <p class="text-[11px] text-slate-500 mt-0.5 font-mono">Total Hak Akses: {{ count($rolePermNames) }} dari {{ $allPermissions->count() }} izin aktif</p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 font-mono">
+                                        Total Hak Akses: <strong class="{{ $rolePermCount > 0 ? 'text-indigo-600' : 'text-slate-400' }}">{{ $rolePermCount }}</strong> dari {{ $totalPermsCount }} izin aktif
+                                    </p>
                                 </div>
                             </div>
 
-                            @if(!$isCoreRole)
-                                <form action="{{ route('superadmin.roles.destroy', $r->name) }}" method="POST" onsubmit="return confirm('Hapus role {{ $r->name }}? Pengguna dengan role ini akan dialihkan ke General Affair.')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold text-xs transition flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        <span>Hapus Role</span>
+                            <div class="flex items-center gap-2">
+                                @if(!$isSuperadmin)
+                                    <!-- Quick Actions Toolbar -->
+                                    <button type="button" @click="checkAll()" class="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition cursor-pointer" title="Centang seluruh izin">
+                                        ✓ Pilih Semua
                                     </button>
-                                </form>
-                            @endif
+                                    <button type="button" @click="uncheckAll()" class="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold text-xs transition cursor-pointer" title="Kosongkan seluruh izin">
+                                        ✕ Kosongkan
+                                    </button>
+
+                                    @if($preset)
+                                        <button type="button" @click="applyPreset({{ json_encode($preset) }})" class="px-2.5 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition cursor-pointer" title="Kembalikan ke rekomendasi sistem">
+                                            🔄 Reset Standar
+                                        </button>
+                                    @endif
+                                @endif
+
+                                @if(!$isCoreRole)
+                                    <form action="{{ route('superadmin.roles.destroy', $r->name) }}" method="POST" onsubmit="return confirm('Hapus role kustom {{ $r->name }}? Pengguna dengan role ini akan dialihkan ke General Affair.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            <span>Hapus Role</span>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
                         </div>
 
-                        <!-- Form Update Permissions for Role -->
-                        <form action="{{ route('superadmin.roles.permissions', $r->name) }}" method="POST" class="space-y-4">
-                            @csrf
-                            @method('PUT')
+                        @if($isSuperadmin)
+                            <!-- Superadmin Informational Alert -->
+                            <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 flex items-start gap-3 text-xs text-amber-900">
+                                <span class="text-xl shrink-0">👑</span>
+                                <div>
+                                    <strong class="font-bold block text-sm text-amber-950">Hak Akses Superadmin Permanen (Master Bypass)</strong>
+                                    <p class="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                                        Role <strong>superadmin</strong> memiliki otoritas tak terbatas di seluruh 12 hak akses sistem secara otomatis. Izin ini tidak dapat dinonaktifkan untuk menjaga keamanan agar administrator tidak terkunci keluar (lockout).
+                                    </p>
+                                </div>
+                            </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                @foreach($allPermissions as $perm)
+                            <!-- Read-only Display of Active Permissions for Superadmin -->
+                            <div class="space-y-3 pt-1">
+                                @foreach($categorizedPermissions as $categoryName => $perms)
                                     @php
-                                        $hasPerm = in_array($perm->name, $rolePermNames);
-                                        $meta = $permissionMeta[$perm->name] ?? [
-                                            'title' => $perm->name,
-                                            'desc' => 'Izin akses sistem ' . $perm->name,
-                                            'icon' => '🔑'
-                                        ];
+                                        $cMeta = $categoryMeta[$categoryName] ?? ['icon' => '📁', 'badge' => 'bg-slate-100 text-slate-700 border-slate-200'];
                                     @endphp
-                                    <label class="p-3 rounded-2xl border {{ $hasPerm ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200 bg-slate-50/30 opacity-70' }} hover:opacity-100 transition flex items-start gap-2.5 cursor-pointer select-none">
-                                        <input type="checkbox" name="permissions[]" value="{{ $perm->name }}" {{ $hasPerm ? 'checked' : '' }} class="mt-0.5 rounded text-amber-600 focus:ring-0">
-                                        <div>
-                                            <div class="font-bold text-slate-800 text-[11px]">{{ $meta['icon'] }} {{ $meta['title'] }}</div>
-                                            <div class="text-[10px] text-slate-500 leading-tight mt-0.5">{{ $meta['desc'] }}</div>
+                                    <div class="p-3 rounded-2xl bg-slate-50/70 border border-slate-100 space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase border {{ $cMeta['badge'] }}">
+                                                <span>{{ $cMeta['icon'] }}</span>
+                                                <span>{{ $categoryName }}</span>
+                                            </span>
                                         </div>
-                                    </label>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                            @foreach($perms as $permName => $meta)
+                                                <div class="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/30 flex items-start gap-2.5">
+                                                    <span class="text-emerald-600 font-bold text-xs mt-0.5">✓</span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <div class="font-bold text-slate-900 text-[11px] truncate">{{ $meta['icon'] }} {{ $meta['title'] }}</div>
+                                                        <div class="text-[10px] text-slate-500 leading-tight mt-0.5">{{ $meta['desc'] }}</div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
                                 @endforeach
                             </div>
+                        @else
+                            <!-- Form Update Permissions for Role (Manager, General Affair, Custom Roles) -->
+                            <form action="{{ route('superadmin.roles.permissions', $r->name) }}" method="POST" class="space-y-4">
+                                @csrf
+                                @method('PUT')
 
-                            <div class="flex justify-end pt-2">
-                                <button type="submit" class="px-4 py-2 bg-[#3A7D8A] hover:bg-[#2E5190] text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                    <span>Simpan Hak Akses Role {{ strtoupper(str_replace('_', ' ', $r->name)) }}</span>
-                                </button>
-                            </div>
-                        </form>
+                                <div class="space-y-3.5">
+                                    @foreach($categorizedPermissions as $categoryName => $perms)
+                                        @php
+                                            $cMeta = $categoryMeta[$categoryName] ?? ['icon' => '📁', 'badge' => 'bg-slate-100 text-slate-700 border-slate-200'];
+                                            $catPermNames = array_keys($perms);
+                                            $catActiveCount = count(array_intersect($catPermNames, $rolePermNames));
+                                        @endphp
+                                        <div class="p-3.5 rounded-2xl bg-slate-50/60 border border-slate-100 space-y-2.5">
+                                            <div class="flex items-center justify-between">
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase border {{ $cMeta['badge'] }}">
+                                                    <span>{{ $cMeta['icon'] }}</span>
+                                                    <span>{{ $categoryName }}</span>
+                                                </span>
+                                                <span class="text-[10px] font-mono font-semibold {{ $catActiveCount > 0 ? 'text-indigo-600' : 'text-slate-400' }}">
+                                                    {{ $catActiveCount }} / {{ count($perms) }} Aktif
+                                                </span>
+                                            </div>
+
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                                @foreach($perms as $permName => $meta)
+                                                    @php
+                                                        $hasPerm = in_array($permName, $rolePermNames);
+                                                    @endphp
+                                                    <label class="p-3 rounded-xl border {{ $hasPerm ? 'border-indigo-300 bg-indigo-50/30 ring-1 ring-indigo-200/50' : 'border-slate-200 bg-white opacity-70' }} hover:opacity-100 hover:border-indigo-400 transition flex items-start gap-2.5 cursor-pointer select-none">
+                                                        <input type="checkbox" name="permissions[]" value="{{ $permName }}" {{ $hasPerm ? 'checked' : '' }} class="mt-0.5 rounded text-indigo-600 focus:ring-0">
+                                                        <div class="min-w-0 flex-1">
+                                                            <div class="flex items-center gap-1.5">
+                                                                <span class="text-sm shrink-0">{{ $meta['icon'] }}</span>
+                                                                <span class="font-bold text-slate-800 text-[11px] truncate">{{ $meta['title'] }}</span>
+                                                            </div>
+                                                            <div class="text-[10px] text-slate-500 leading-tight mt-0.5">{{ $meta['desc'] }}</div>
+                                                            <div class="mt-1 font-mono text-[9px] text-slate-400">{{ $permName }}</div>
+                                                        </div>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                                    <span class="text-[11px] text-slate-400 font-mono">
+                                        Perubahan izin akan langsung aktif tanpa perlu restart server.
+                                    </span>
+                                    <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-105 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        <span>Simpan Hak Akses Role {{ strtoupper(str_replace('_', ' ', $r->name)) }}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        @endif
                     </div>
                 @endforeach
             </div>
@@ -714,419 +938,4 @@
         </div>
     </div>
 
-    <!-- Sub-Tab 4: Integrasi Google Apps Script -->
-    <div x-show="subTab === 'config'" x-cloak class="space-y-4">
-        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm max-w-2xl">
-            <h3 class="font-bold text-sm text-slate-900 mb-1">Pengaturan Integrasi Spreadsheet &amp; Drive</h3>
-            <p class="text-xs text-slate-500 mb-4">Pastikan URL Web App Google Apps Script sudah diset ke "Anyone" agar sinkronisasi 1:1 berjalan lancar.</p>
-
-            <form action="{{ route('superadmin.config.update') }}" method="POST" class="space-y-4 text-xs">
-                @csrf
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Google Apps Script Web App URL</label>
-                    <input type="url" name="gasUrl" value="{{ $config['gasUrl'] ?? '' }}" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Spreadsheet ID</label>
-                    <input type="text" name="spreadsheetId" value="{{ $config['spreadsheetId'] ?? '' }}" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Drive Folder ID</label>
-                    <input type="text" name="driveFolderId" value="{{ $config['driveFolderId'] ?? '' }}" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">PIN Rahasia Superadmin</label>
-                    <input type="text" name="superadminPin" value="{{ $config['superadminPin'] ?? '1234' }}" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
-                </div>
-
-                <div class="pt-2 flex justify-end">
-                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white font-bold text-xs shadow-sm transition">
-                        Simpan Pengaturan
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Sub-Tab 5: Integrasi ERPNext (Frappe REST API) -->
-    <div x-show="subTab === 'erpnext'" x-cloak class="space-y-6">
-        <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm max-w-3xl">
-            <div class="flex items-start justify-between pb-4 border-b border-slate-100 mb-5">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#3A7D8A] to-[#2E5190] text-white flex items-center justify-center font-black text-lg shadow-md">
-                        ⚡
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-sm text-slate-900">Integrasi ERPNext (Frappe REST API)</h3>
-                        <p class="text-xs text-slate-500">Koneksikan Enterprise Asset Management ke instance ERPNext kantor via REST API</p>
-                    </div>
-                </div>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold {{ !empty($config['erpnextUrl']) ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-300' }}">
-                    <span class="w-2 h-2 rounded-full {{ !empty($config['erpnextUrl']) ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
-                    {{ !empty($config['erpnextUrl']) ? 'Terkonfigurasi' : 'Belum Terhubung' }}
-                </span>
-            </div>
-
-            <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/60 mb-6 flex items-start gap-3 text-xs text-amber-900">
-                <div class="text-base shrink-0 mt-0.5">💡</div>
-                <div class="space-y-1">
-                    <p class="font-bold">Informasi Kredensial &amp; Autentikasi ERPNext:</p>
-                    <p class="text-[11px] text-amber-800">
-                        API Key &amp; API Secret kantor Anda sudah dipasang secara otomatis. Silakan masukkan <strong>URL Server ERPNext</strong> kantor Anda di bawah ini, lalu klik <strong>Uji Koneksi</strong> untuk memverifikasi tautan ke server Frappe/ERPNext.
-                    </p>
-                </div>
-            </div>
-
-            <form action="{{ route('erpnext.config') }}" method="POST" class="space-y-4 text-xs">
-                @csrf
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">
-                        URL Server ERPNext <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="text" id="erpnextUrlInput" name="erpnextUrl" value="{{ $config['erpnextUrl'] ?? '' }}" placeholder="https://erp.kantor.com atau http://192.168.1.xxx:8000" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
-                    <p class="text-[10px] text-slate-400 mt-1">Masukkan domain publik atau IP port ERPNext kantor Anda (tanpa garis miring di akhir).</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">
-                            API Key ERPNext <span class="text-rose-500">*</span>
-                        </label>
-                        <input type="text" id="erpnextApiKeyInput" name="erpnextApiKey" value="{{ $config['erpnextApiKey'] ?? '43895e90883a899' }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">
-                            API Secret ERPNext <span class="text-rose-500">*</span>
-                        </label>
-                        <input type="password" id="erpnextApiSecretInput" name="erpnextApiSecret" value="{{ $config['erpnextApiSecret'] ?? '3d8c285da00a784' }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
-                    </div>
-                </div>
-
-                <!-- Test Connection Live Feedback -->
-                <div x-show="erpTestResult" x-cloak class="mt-4 p-4 rounded-2xl border text-xs transition" :class="erpTestResult && erpTestResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'">
-                    <div class="flex items-center gap-2 font-bold mb-1">
-                        <span x-text="erpTestResult && erpTestResult.success ? '✅' : '❌'"></span>
-                        <span x-text="erpTestResult && erpTestResult.success ? 'Koneksi Berhasil' : 'Koneksi Gagal'"></span>
-                    </div>
-                    <p class="text-[11px]" x-text="erpTestResult ? erpTestResult.message : ''"></p>
-                </div>
-
-                <div class="pt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
-                    <button type="button" @click="testErpConnection()" :disabled="erpTesting" class="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center gap-2 disabled:opacity-50">
-                        <svg x-show="erpTesting" class="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span x-text="erpTesting ? 'Sedang Menguji...' : '🔌 Uji Koneksi ERPNext'"></span>
-                    </button>
-
-                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-105 text-white font-bold text-xs shadow-sm transition">
-                        Simpan Konfigurasi ERPNext
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Demonstration & Two-Way Sync Proof Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            <!-- Card 1: Tarik Data (Pull Assets from ERPNext) -->
-            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between space-y-4">
-                <div>
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base">
-                                📥
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-sm text-slate-900">1. Tarik Data dari ERPNext</h3>
-                                <p class="text-[11px] text-slate-500 font-mono" x-text="'GET /api/resource/' + (erpDocType || 'Asset')"></p>
-                            </div>
-                        </div>
-                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold">GET REST API</span>
-                    </div>
-
-                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">
-                        Endpoint target panggilan API:
-                        <code class="block mt-1 bg-slate-100 p-2 rounded-xl font-mono text-[11px] text-teal-900 font-bold break-all border border-slate-200" x-text="(document.getElementById('erpnextUrlInput')?.value || 'https://erp.kantor.com') + '/api/resource/' + (erpDocType || 'Asset')"></code>
-                    </p>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                        <div>
-                            <label class="block font-semibold text-slate-700 mb-1 text-[11px]">DocType ERPNext Target</label>
-                            <select x-model="erpDocType" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-[#3A7D8A]">
-                                <option value="Asset">Asset (Modul Aset Tetap / Fixed Assets)</option>
-                                <option value="Item">Item (Master Barang &amp; Inventaris IT)</option>
-                                <option value="Employee">Employee (Data Karyawan / Pemegang)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-semibold text-slate-700 mb-1 text-[11px]">Batas Tarik Data (Limit)</label>
-                            <select x-model="erpLimit" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-[#3A7D8A]">
-                                <option value="50">50 Data Teratas</option>
-                                <option value="100">100 Data</option>
-                                <option value="250">250 Data</option>
-                                <option value="500">500 Data (Rekomendasi)</option>
-                                <option value="1000">1.000 Data (Seluruh Aset)</option>
-                            </select>
-                        </div>
-                        <div class="flex items-end pb-1.5">
-                            <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-700 font-semibold p-2 rounded-xl bg-slate-50 border border-slate-200 hover:bg-emerald-50/50 transition w-full">
-                                <input type="checkbox" x-model="erpAutoImport" class="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-0">
-                                <span>Simpan ke Database Portal</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <button type="button" @click="pullFromErp(false)" :disabled="erpPulling" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50">
-                            <svg x-show="erpPulling" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <span x-text="erpPulling ? 'Sedang Menarik...' : '📥 Tarik Data Live ERP'"></span>
-                        </button>
-                        <button type="button" @click="pullFromErp(true)" :disabled="erpPulling" class="py-2.5 px-3 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition" title="Uji alur sinkronisasi dengan data simulasi">
-                            <span>🧪 Uji Contoh Tarik</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Proof & Result Box for Pull -->
-                <div x-show="erpPullResult" x-cloak class="mt-4 p-4 rounded-2xl border text-xs bg-slate-50 border-slate-200 space-y-3">
-                    <div class="flex items-center justify-between pb-2 border-b border-slate-200">
-                        <div class="flex items-center gap-2 font-bold text-slate-900">
-                            <span>Bukti Respon ERPNext:</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold" :class="erpPullResult && erpPullResult.success ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'" x-text="erpPullResult && erpPullResult.success ? 'HTTP 200 OK' : 'Gagal'"></span>
-                        </div>
-                        <span class="font-mono text-[10px] text-slate-500" x-text="erpPullResult ? erpPullResult.timestamp : ''"></span>
-                    </div>
-
-                    <template x-if="erpPullResult && erpPullResult.success">
-                        <div>
-                            <div class="text-[11px] text-slate-600 mb-2">
-                                Ditemukan <strong class="text-emerald-700" x-text="erpPullResult.count"></strong> aset pada DocType <code class="font-mono text-emerald-800 font-bold" x-text="erpPullResult.docType"></code>
-                                <template x-if="erpPullResult.importedCount > 0">
-                                    <span class="inline-flex items-center gap-1.5 ml-1">
-                                        &bull; <strong class="text-teal-700" x-text="erpPullResult.importedCount"></strong> berhasil disimpan ke inventaris!
-                                        <button type="button" @click="window.location.reload()" class="underline text-emerald-800 font-bold ml-1 hover:text-emerald-950">Refresh Halaman</button>
-                                    </span>
-                                </template>
-                            </div>
-
-                            <template x-if="erpPullResult.assets && erpPullResult.assets.length > 0">
-                                <div class="max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-white">
-                                    <table class="w-full text-left text-[11px]">
-                                        <thead class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 sticky top-0">
-                                            <tr>
-                                                <th class="p-2">ID / Name</th>
-                                                <th class="p-2">Nama Aset</th>
-                                                <th class="p-2">Divisi</th>
-                                                <th class="p-2">Pemegang</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100">
-                                            <template x-for="item in erpPullResult.assets" :key="item.name">
-                                                <tr class="hover:bg-slate-50">
-                                                    <td class="p-2 font-mono font-bold text-emerald-700" x-text="item.name"></td>
-                                                    <td class="p-2 font-semibold text-slate-800" x-text="item.asset_name || item.item_name || '-'"></td>
-                                                    <td class="p-2 text-slate-600" x-text="item.department || item.item_group || '-'"></td>
-                                                    <td class="p-2 text-slate-600" x-text="item.custodian || '-'"></td>
-                                                </tr>
-                                            </template>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-                    <template x-if="erpPullResult && !erpPullResult.success">
-                        <div class="space-y-3">
-                            <p class="text-rose-600 font-medium" x-text="erpPullResult.message"></p>
-                            
-                            <!-- Role Guidance for HTTP 403 -->
-                            <template x-if="erpPullResult.status_code === 403">
-                                <div class="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 space-y-2">
-                                    <div class="flex items-center gap-1.5 font-bold text-amber-950">
-                                        <span>🔑 Solusi Hak Akses ERPNext:</span>
-                                    </div>
-                                    <p class="text-[11px] leading-relaxed">
-                                        Akun API Anda di ERPNext adalah: <strong class="font-mono text-slate-900" x-text="erpPullResult.logged_user || 'User API'"></strong>.
-                                    </p>
-                                    <ol class="list-decimal list-inside text-[11px] space-y-1 text-amber-900 pl-1">
-                                        <li>Buka ERPNext kantor Anda di browser sebagai <strong>Administrator</strong>.</li>
-                                        <li>Masuk ke menu <strong>Users</strong> (Pengguna) &rarr; pilih user <strong class="font-mono text-slate-900" x-text="erpPullResult.logged_user || 'terkait'"></strong>.</li>
-                                        <li>Pada tabel <strong>Roles</strong>, centang role <strong class="text-emerald-800" x-text="erpPullResult.required_role || 'Asset Manager'"></strong> atau <strong>System Manager</strong>.</li>
-                                        <li>Klik tombol <strong>Save</strong> di ERPNext.</li>
-                                    </ol>
-                                    <template x-if="erpPullResult.item_accessible">
-                                        <div class="mt-2 pt-2 border-t border-amber-200 text-[11px] text-teal-800 font-semibold">
-                                            💡 <strong>Tips Cepat:</strong> DocType 'Item' (Master Barang) sudah dapat diakses oleh user ini. Anda bisa langsung mengubah pilihan <strong>DocType Target</strong> di atas menjadi <strong>Item</strong> lalu klik <strong>Tarik Data Live ERP</strong>!
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-                </div>
-            </div>
-
-            <!-- Card 2: Kirim Data (Push Asset to ERPNext) -->
-            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between space-y-4">
-                <div>
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base">
-                                🚀
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-sm text-slate-900">2. Kirim Data ke ERPNext</h3>
-                                <p class="text-[11px] text-slate-500 font-mono" x-text="'POST /api/resource/' + (erpDocType || 'Asset')"></p>
-                            </div>
-                        </div>
-                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 font-bold">POST REST API</span>
-                    </div>
-
-                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">
-                        Pilih aset yang ada di portal Anda atau ketik manual spesifikasinya, lalu kirim ke ERPNext untuk membuktikan pengiriman data:
-                    </p>
-
-                    <!-- Target DocType Selector for Push -->
-                    <div class="mb-4">
-                        <label class="block font-semibold text-slate-700 mb-1.5 text-[11px]">Pilih Modul Target di ERPNext:</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition text-xs font-semibold" :class="erpDocType === 'Asset' ? 'border-[#3A7D8A] bg-teal-50/60 text-[#0F1D2E] shadow-xs' : 'border-slate-200 bg-slate-50 text-slate-600'">
-                                <input type="radio" x-model="erpDocType" value="Asset" class="text-teal-600 focus:ring-0">
-                                <div>
-                                    <span class="block text-xs font-bold">Modul Asset</span>
-                                    <span class="block text-[10px] text-slate-500 font-normal">Fixed Assets (Akuntansi)</span>
-                                </div>
-                            </label>
-                            <label class="p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition text-xs font-semibold" :class="erpDocType === 'Item' ? 'border-blue-600 bg-blue-50/60 text-blue-900 shadow-xs' : 'border-slate-200 bg-slate-50 text-slate-600'">
-                                <input type="radio" x-model="erpDocType" value="Item" class="text-blue-600 focus:ring-0">
-                                <div>
-                                    <span class="block text-xs font-bold">Modul Item (Barang)</span>
-                                    <span class="block text-[10px] text-blue-700 font-normal">Master Barang &bull; Bebas Syarat</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Quick Pick From Local Submissions -->
-                    <div class="space-y-3 mb-4">
-                        <div>
-                            <label class="block font-semibold text-slate-700 mb-1 text-[11px]">Pilih Dari Aset Terdaftar (Otomatis Isi)</label>
-                            <select @change="selectAssetForPush($event)" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-[#3A7D8A]">
-                                <option value="">-- Pilih Aset Terdaftar (Total {{ $submissions->count() }} Aset) --</option>
-                                @foreach($submissions as $sub)
-                                    @php
-                                        $d = $sub->data ?? [];
-                                        $ipTag = (!empty($d['ip']) && $d['ip'] !== '-') ? ' [IP: ' . $d['ip'] . ']' : '';
-                                        $label = $sub->nama . ' - ' . ($d['computerName'] ?? ($d['jenisHp'] ?? $sub->jenis_perangkat)) . $ipTag . ' (' . $sub->departemen . ')';
-                                    @endphp
-                                    <option value="{{ $sub->id }}" 
-                                            data-name="{{ $label }}"
-                                            data-dept="{{ $sub->departemen }}"
-                                            data-user="{{ $sub->nama }}"
-                                            data-code="{{ $d['computerName'] ?? ($d['jenisHp'] ?? 'IT-ASSET') }}">
-                                        {{ $label }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="flex items-center justify-between pt-1">
-                            <span class="text-[10px] text-slate-500">Form Spesifikasi Aset Target</span>
-                            <button type="button" @click="fetchErpMasters()" :disabled="erpLoadingMasters" class="text-[10px] text-teal-700 hover:text-teal-900 font-semibold flex items-center gap-1 transition">
-                                <svg x-show="erpLoadingMasters" class="animate-spin h-3 w-3 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <span x-text="erpLoadingMasters ? 'Mengecek Master...' : '⚡ Cek Master Data ERP (Lokasi &amp; Item)'"></span>
-                            </button>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2 text-[11px]">
-                            <div class="col-span-2">
-                                <label class="block font-semibold text-slate-600 mb-0.5">Nama Aset (asset_name)</label>
-                                <input type="text" x-model="erpPushForm.asset_name" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono">
-                            </div>
-                            <div>
-                                <label class="block font-semibold text-slate-600 mb-0.5">Divisi (department)</label>
-                                <input type="text" x-model="erpPushForm.department" list="erpDeptsList" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono">
-                                <datalist id="erpDeptsList">
-                                    <template x-if="erpMasters && erpMasters.departments">
-                                        <template x-for="d in erpMasters.departments" :key="d">
-                                            <option :value="d"></option>
-                                        </template>
-                                    </template>
-                                </datalist>
-                            </div>
-                            <div>
-                                <label class="block font-semibold text-slate-600 mb-0.5">Pemegang (custodian)</label>
-                                <input type="text" x-model="erpPushForm.custodian" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono" placeholder="Nama / ID Karyawan">
-                            </div>
-                            <div>
-                                <label class="block font-semibold text-slate-600 mb-0.5">Kode Item (item_code)</label>
-                                <input type="text" x-model="erpPushForm.item_code" list="erpItemsList" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono" placeholder="Item Code ERP">
-                                <datalist id="erpItemsList">
-                                    <template x-if="erpMasters && erpMasters.items">
-                                        <template x-for="it in erpMasters.items" :key="it.name">
-                                            <option :value="it.name" :label="it.item_name || it.name"></option>
-                                        </template>
-                                    </template>
-                                </datalist>
-                            </div>
-                            <div>
-                                <label class="block font-semibold text-slate-600 mb-0.5">Lokasi (location)</label>
-                                <input type="text" x-model="erpPushForm.location" list="erpLocationsList" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono" placeholder="Auto-pilih jika kosong">
-                                <datalist id="erpLocationsList">
-                                    <template x-if="erpMasters && erpMasters.locations">
-                                        <template x-for="loc in erpMasters.locations" :key="loc">
-                                            <option :value="loc"></option>
-                                        </template>
-                                    </template>
-                                </datalist>
-                            </div>
-                            <div class="col-span-2">
-                                <label class="block font-semibold text-slate-600 mb-0.5">Nilai Perolehan / Harga (gross_purchase_amount)</label>
-                                <input type="number" x-model="erpPushForm.gross_purchase_amount" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-mono" placeholder="Wajib > 0 di ERP (default: 1)">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <button type="button" @click="pushToErp(false)" :disabled="erpPushing" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-[#2E5190] hover:brightness-105 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50">
-                            <svg x-show="erpPushing" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <span x-text="erpPushing ? 'Sedang Mengirim...' : '🚀 Kirim Live ke ERP'"></span>
-                        </button>
-                        <button type="button" @click="pushToErp(true)" :disabled="erpPushing" class="py-2.5 px-3 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs transition" title="Uji alur pengiriman dengan data simulasi">
-                            <span>🧪 Uji Contoh Kirim</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Proof & Result Box for Push -->
-                <div x-show="erpPushResult" x-cloak class="mt-4 p-4 rounded-2xl border text-xs bg-slate-900 text-slate-100 space-y-3 font-mono">
-                    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                        <div class="flex items-center gap-2 font-bold">
-                            <span>📡 Bukti Telemetri HTTP REST API:</span>
-                            <span class="px-2 py-0.5 rounded text-[10px]" :class="erpPushResult && erpPushResult.success ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'" x-text="erpPushResult && erpPushResult.telemetry ? ('HTTP ' + erpPushResult.telemetry.http_status) : (erpPushResult && erpPushResult.success ? 'HTTP 200' : 'Error')"></span>
-                        </div>
-                    </div>
-
-                    <div class="space-y-1.5 text-[11px] text-slate-300">
-                        <p><span class="text-slate-500">Endpoint:</span> <span class="text-amber-400" x-text="erpPushResult && erpPushResult.telemetry ? erpPushResult.telemetry.endpoint : 'POST /api/resource/Asset'"></span></p>
-                        <p><span class="text-slate-500">Header:</span> <span class="text-teal-400">Authorization: token 43895e90883a899:3d8c••••</span></p>
-                        <p><span class="text-slate-500">Pesan:</span> <span :class="erpPushResult && erpPushResult.success ? 'text-emerald-400' : 'text-rose-400'" x-text="erpPushResult ? erpPushResult.message : ''"></span></p>
-                    </div>
-
-                    <template x-if="erpPushResult && !erpPushResult.success && erpDocType === 'Asset'">
-                        <div class="mt-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-sans">
-                            💡 <strong>Tips Cepat:</strong> Jika ERP kantor belum menyiapkan kategori akuntansi Fixed Asset, Anda bisa klik tombol pilihan <strong>Modul Item (Barang)</strong> di atas lalu klik <strong>Kirim Live ke ERP</strong> untuk langsung menyimpannya ke master barang ERP tanpa syarat akuntansi!
-                        </div>
-                    </template>
-
-                    <template x-if="erpPushResult && erpPushResult.telemetry && erpPushResult.telemetry.raw_response">
-                        <div class="mt-2 pt-2 border-t border-slate-800">
-                            <span class="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Raw Response Body Dari Server ERP:</span>
-                            <pre class="bg-black/60 p-2.5 rounded-xl text-[10px] overflow-x-auto text-emerald-400 max-h-36" x-text="JSON.stringify(erpPushResult.telemetry.raw_response, null, 2)"></pre>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>

@@ -451,30 +451,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                             </button>
                           </>
                         )}
-
-                        {!isGA && (
-                          <button
-                            onClick={() => {
-                              onOpenSettings();
-                              setIsProfileDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition"
-                          >
-                            <Settings className="w-4 h-4 text-slate-500" />
-                            <span>Integrasi Google Apps Script</span>
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => {
-                            onOpenLogin();
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition"
-                        >
-                          <LogIn className="w-4 h-4 text-blue-600" />
-                          <span>Ganti Akun / Peran</span>
-                        </button>
                       </div>
 
                       <div className="border-t border-slate-100 pt-2">
@@ -756,16 +732,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <span>Panduan Google Drive</span>
                       </button>
 
-                      <button
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          onOpenSettings();
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-slate-300 hover:bg-slate-800 transition"
-                      >
-                        <Settings className="w-4 h-4 text-slate-400" />
-                        <span>Pengaturan GAS &amp; Sheet</span>
-                      </button>
                     </>
                   )}
                 </div>
@@ -773,28 +739,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Drawer Bottom Action */}
-            <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  onOpenLogin();
-                }}
-                className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white"
-              >
-                <LogIn className="w-4 h-4 text-[#3A7D8A]" />
-                <span>Ganti Akun</span>
-              </button>
-
+            <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-end">
               <button
                 onClick={() => {
                   onLogout();
                   setIsMenuOpen(false);
-                  onOpenLogin();
                 }}
                 className="flex items-center gap-1.5 text-xs font-bold text-red-400 hover:text-red-300"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Keluar</span>
+                <span>Keluar (Logout)</span>
               </button>
             </div>
           </aside>

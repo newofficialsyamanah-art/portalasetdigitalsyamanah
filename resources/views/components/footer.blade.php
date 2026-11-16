@@ -118,14 +118,6 @@
                             <span>Panduan Cek DxDiag Windows</span>
                         </button>
                     </li>
-                    @if(!Auth::check() || Auth::user()->role !== 'general_affair')
-                        <li>
-                            <button @click="openGasModal = true" class="w-full text-left py-1 px-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center gap-2 transition">
-                                <span class="text-teal-400">☁️</span>
-                                <span>Setup Web App GAS &amp; Sheet</span>
-                            </button>
-                        </li>
-                    @endif
                 </ul>
             </div>
 
@@ -160,9 +152,9 @@
                             <span class="font-bold text-white truncate max-w-[120px]">
                                 {{ Auth::user()->name ?? 'Tamu' }}
                             </span>
-                            <button @click="openLoginModal = true" class="text-[10px] font-bold text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1">
-                                <span>Ganti Akun</span>
-                            </button>
+                            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-bold">
+                                {{ strtoupper(str_replace('_', ' ', Auth::user()->role ?? 'guest')) }}
+                            </span>
                         </div>
                     </div>
                 </div>

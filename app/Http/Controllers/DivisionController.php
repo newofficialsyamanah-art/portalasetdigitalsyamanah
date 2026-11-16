@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Division;
 use App\Models\Submission;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DivisionController extends Controller
 {
@@ -16,6 +17,14 @@ class DivisionController extends Controller
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        if ($user && !$user->can('manage divisions') && !$user->can('manage inventory') && $user->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk mengelola master divisi.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk mengelola master divisi.');
+        }
+
         $name = trim($request->input('name'));
         if (empty($name)) {
             return back()->with('error', 'Nama divisi tidak boleh kosong.');
@@ -36,6 +45,14 @@ class DivisionController extends Controller
 
     public function update(Request $request)
     {
+        $user = Auth::user();
+        if ($user && !$user->can('manage divisions') && $user->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk mengelola master divisi.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk mengelola master divisi.');
+        }
+
         $oldName = trim($request->input('oldName'));
         $newName = trim($request->input('newName'));
 
@@ -75,6 +92,14 @@ class DivisionController extends Controller
 
     public function destroy(Request $request, string $name)
     {
+        $user = Auth::user();
+        if ($user && !$user->can('manage divisions') && $user->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk menghapus master divisi.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk menghapus master divisi.');
+        }
+
         $decoded = urldecode($name);
         Division::where('name', $decoded)->delete();
 

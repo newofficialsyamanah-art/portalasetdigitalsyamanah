@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\GuideBook;
 use App\Models\AppSystem;
 use App\Services\GuideBookService;
+use App\Services\RbacService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -27,6 +28,9 @@ class DashboardController extends Controller
             Artisan::call('db:seed', ['--force' => true]);
         }
 
+        // Auto-ensure all granular RBAC permissions and roles exist
+        RbacService::ensurePermissionsExist();
+
         // Auto-initialize Guide Books & Master Systems table and built-in guides
         GuideBook::ensureTableExists();
         AppSystem::ensureTableExists();
@@ -36,10 +40,27 @@ class DashboardController extends Controller
             return redirect()->route('login');
         }
 
-        $activeTab = $request->query('tab', $user->role === 'general_affair' ? 'inventory' : 'spreadsheet');
+        $userRole = $user->role;
+        $isSuperadmin = $userRole === 'superadmin';
+        $isManager = $userRole === 'manager';
+        $isGA = $userRole === 'general_affair';
+
+        $activeTab = $request->query('tab');
+        if (!$activeTab) {
+            if ($isSuperadmin || $isManager || ($user && $user->can('manage spreadsheet'))) {
+                $activeTab = 'spreadsheet';
+            } else {
+                $activeTab = 'inventory';
+            }
+        }
         
-        // General Affair restricted from certain tabs
-        if ($user->role === 'general_affair' && !in_array($activeTab, ['inventory', 'phones', 'pc', 'guides'])) {
+        // General Affair restricted from confidential or admin tabs
+        if ($isGA && in_array($activeTab, ['spreadsheet', 'mikrotik', 'audit', 'superadmin'])) {
+            $activeTab = 'inventory';
+        }
+
+        // Restrict guides tab if user has no view or manage guidebook permissions
+        if ($activeTab === 'guides' && !$isSuperadmin && !$user->can('view guidebooks') && !$user->can('manage guidebooks')) {
             $activeTab = 'inventory';
         }
 
@@ -67,6 +88,7 @@ class DashboardController extends Controller
         $allPermissions = class_exists(Permission::class) && Schema::hasTable('permissions')
             ? Permission::orderBy('name')->get() 
             : collect();
+        $permissionMeta = RbacService::getPermissionsDefinition();
 
         // Calculate counts
         $deviceCount = $submissions->filter(function ($s) {
@@ -109,7 +131,8 @@ class DashboardController extends Controller
             'guideCategories',
             'guideRoles',
             'systemFeaturesMap',
-            'appSystems'
+            'appSystems',
+            'permissionMeta'
         ));
     }
 }

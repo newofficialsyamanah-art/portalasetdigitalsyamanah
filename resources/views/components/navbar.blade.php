@@ -1,422 +1,316 @@
-<!-- Top Navbar Component -->
-<header class="bg-[#0F1D2E]/95 backdrop-blur-md text-white border-b border-slate-800/90 sticky top-0 z-30 shadow-md">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
-        
-        <!-- Brand Identity -->
-        <div @click="setTab('{{ Auth::check() && Auth::user()->role === 'general_affair' ? 'inventory' : 'spreadsheet' }}')" class="flex items-center gap-2.5 cursor-pointer select-none group shrink-0">
-            <div class="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-xl shadow-xs border border-white/20 group-hover:scale-105 transition-transform duration-200">
-                <img src="/logo-syamanah.png" alt="Logo Syamanah" class="h-6 w-auto object-contain" onerror="this.style.display='none'">
-                <!-- <span class="font-black text-[#0F1D2E] text-xs font-sans tracking-tight">SYAMANAH</span> -->
-            </div>
+@php
+    $user = Auth::user();
+    $role = $user ? $user->role : 'general_affair';
+    $isSuperadmin = $user && $role === 'superadmin';
+    $isManager = $user && $role === 'manager';
+    $isGA = $user && $role === 'general_affair';
 
-            <div class="hidden sm:flex flex-col">
+    // Granular capabilities (Spatie permissions with core role bypass)
+    $canSpreadsheet = $isSuperadmin || $isManager || ($user && ($user->can('manage spreadsheet') || $user->can('manage excel')));
+    $canInventory = $isSuperadmin || $isManager || $isGA || ($user && $user->can('manage inventory'));
+    $canPhones = $isSuperadmin || $isManager || $isGA || ($user && $user->can('manage inventory'));
+    $canMikrotik = $isSuperadmin || $isManager || ($user && $user->can('manage mikrotik'));
+    $canAudit = $isSuperadmin || $isManager || ($user && ($user->can('view credentials') || $user->can('manage rbac') || $user->can('manage users')));
+    $canGuides = $isSuperadmin || ($user && ($user->can('view guidebooks') || $user->can('manage guidebooks')));
+    $canSuperadmin = $isSuperadmin || ($user && ($user->can('manage users') || $user->can('manage rbac') || $user->can('manage systems') || $user->can('manage divisions')));
+    $canExcel = $isSuperadmin || $isManager || ($user && $user->can('manage excel'));
+
+    // Role display styling & labels
+    if ($isSuperadmin) {
+        $roleLabel = '👑 Superadmin';
+        $roleColor = 'text-amber-400';
+        $roleBorder = 'border-amber-500/30';
+        $roleBg = 'bg-amber-500/10';
+        $avatarBg = 'bg-amber-500 text-slate-950';
+    } elseif ($isManager) {
+        $roleLabel = '👔 Manager';
+        $roleColor = 'text-blue-300';
+        $roleBorder = 'border-blue-500/30';
+        $roleBg = 'bg-blue-500/10';
+        $avatarBg = 'bg-blue-600 text-white';
+    } elseif ($isGA) {
+        $roleLabel = '🏢 General Affair';
+        $roleColor = 'text-teal-300';
+        $roleBorder = 'border-teal-500/30';
+        $roleBg = 'bg-teal-500/10';
+        $avatarBg = 'bg-[#3A7D8A] text-white';
+    } else {
+        $cleanRoleName = ucwords(str_replace('_', ' ', $role));
+        $roleLabel = '🛡️ ' . $cleanRoleName;
+        $roleColor = 'text-purple-300';
+        $roleBorder = 'border-purple-500/30';
+        $roleBg = 'bg-purple-500/10';
+        $avatarBg = 'bg-purple-600 text-white';
+    }
+@endphp
+
+<!-- Backdrop Blur Overlay (Mobile & Tablet) -->
+<div x-show="sidebarOpen" 
+     @click="sidebarOpen = false" 
+     x-cloak 
+     class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-30 lg:hidden transition-opacity duration-200">
+</div>
+
+<!-- ============================================================ -->
+<!-- UNIFIED SLIM & CLEAN LEFT SIDEBAR (Desktop & Mobile Drawer)  -->
+<!-- ============================================================ -->
+<aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
+       class="fixed inset-y-0 left-0 w-64 bg-[#0F1D2E] text-white border-r border-slate-800/90 z-40 flex flex-col shadow-2xl transition-transform duration-200 ease-in-out select-none">
+    
+    <!-- Sidebar Header: Brand & App Identity -->
+    <div class="px-4 py-3.5 border-b border-slate-800/90 bg-slate-950 flex items-center justify-between gap-2.5">
+        <div @click="setTab('{{ $canSpreadsheet ? 'spreadsheet' : 'inventory' }}')" class="flex items-center gap-3 cursor-pointer group flex-1 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-md border border-white/20 group-hover:scale-105 transition-transform duration-200 shrink-0">
+                <img src="/logo-syamanah.png" alt="Logo Syamanah" class="h-7 w-auto object-contain" onerror="this.style.display='none'">
+            </div>
+            <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
-                    <span class="font-extrabold text-white tracking-wider text-xs">
-                        ENTERPRISE ASSET MANAGEMENT
-                    </span>
-                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white tracking-wide">
+                    <span class="font-black text-white text-sm tracking-tight uppercase leading-tight">
                         EAM
                     </span>
+                    <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-[#3A7D8A] text-white shrink-0 leading-none">
+                        v2.4
+                    </span>
                 </div>
-                <span class="text-[10px] text-slate-400 font-medium">
+                <div class="font-extrabold text-[11px] text-teal-300 tracking-wide leading-tight mt-0.5">
+                    Enterprise Asset Management
+                </div>
+                <div class="text-[9px] text-slate-400 font-medium leading-tight mt-0.5">
                     CV Generasi Sugih Sejahtera
-                </span>
+                </div>
             </div>
         </div>
 
-        <!-- Center Navigation - Segmented Pills (Desktop lg:flex) -->
-        <nav class="hidden lg:flex items-center bg-slate-900/90 p-1 rounded-full border border-slate-800 shadow-inner gap-0.5">
-            @if(Auth::check() && Auth::user()->role === 'general_affair')
-                <!-- General Affair Nav -->
-                <button @click="setTab('inventory')" :class="activeTab === 'inventory' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                    <span>Laptop &amp; PC</span>
-                    <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">{{ $deviceCount ?? 0 }}</span>
-                </button>
-
-                <button @click="setTab('phones')" :class="activeTab === 'phones' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    <span>HP Android</span>
-                    <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">{{ $phoneCount ?? 0 }}</span>
-                </button>
-
-                <button @click="setTab('pc')" :class="activeTab === 'pc' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    <span>Input PC</span>
-                </button>
-
-                <button @click="setTab('guides')" :class="activeTab === 'guides' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                    <span>Guide Book</span>
-                    <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">{{ count($guideBooks ?? []) }}</span>
-                </button>
-
-                <button @click="openDxDiagModal = true" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10 transition">
-                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>DxDiag</span>
-                </button>
-            @else
-                <!-- Superadmin & Manager Nav -->
-                <button @click="setTab('spreadsheet')" :class="activeTab === 'spreadsheet' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                    <span>Spreadsheet</span>
-                    <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">{{ $totalSubmissions ?? 0 }}</span>
-                </button>
-
-                <button @click="setTab('inventory')" :class="activeTab === 'inventory' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                    <span>Laptop &amp; PC</span>
-                    <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">{{ $deviceCount ?? 0 }}</span>
-                </button>
-
-                <button @click="setTab('phones')" :class="activeTab === 'phones' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    <span>HP Sales</span>
-                    <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">{{ $phoneCount ?? 0 }}</span>
-                </button>
-
-                <button @click="setTab('mikrotik')" :class="activeTab === 'mikrotik' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
-                    <span>MikroTik</span>
-                </button>
-
-                <button @click="setTab('audit')" :class="activeTab === 'audit' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                    <span>Audit</span>
-                </button>
-
-                <button @click="setTab('guides')" :class="activeTab === 'guides' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-sm ring-1 ring-white/20' : 'text-slate-300 hover:text-white hover:bg-white/10'" class="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all duration-200">
-                    <svg class="w-3.5 h-3.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                    <span>Guide Book</span>
-                    <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full font-mono text-slate-200">{{ count($guideBooks ?? []) }}</span>
-                </button>
-
-                @if(Auth::check() && (Auth::user()->role === 'superadmin' || Auth::user()->can('manage users')))
-                    <button @click="setTab('superadmin')" :class="activeTab === 'superadmin' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-sm ring-1 ring-amber-300/50' : 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'" class="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all duration-200">
-                        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-                        <span>👑 Superadmin</span>
-                    </button>
-                @endif
-            @endif
-        </nav>
-
-        <!-- Right Action: Quick Add + Profile Badge -->
-        <div class="flex items-center gap-2 sm:gap-2.5">
-            
-            <!-- Quick Add Button (Desktop) -->
-            @if(!Auth::check() || Auth::user()->role !== 'general_affair')
-                <div class="relative hidden md:block" @click.away="openQuickAdd = false">
-                    <button @click="openQuickAdd = !openQuickAdd" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#3A7D8A]/30 hover:bg-[#3A7D8A]/50 border border-[#3A7D8A]/40 text-teal-200 hover:text-white text-xs font-semibold transition shadow-xs" title="Tambah Data Baru">
-                        <svg class="w-3.5 h-3.5 text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        <span>Tambah Data</span>
-                        <svg class="w-3 h-3 text-teal-300 transition-transform duration-200" :class="openQuickAdd ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-
-                    <!-- Quick Add Dropdown Menu -->
-                    <div x-show="openQuickAdd" x-cloak class="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 text-slate-800 animate-in fade-in zoom-in-95">
-                        <div class="px-3 py-2 border-b border-slate-100">
-                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Pilih Formulir Input</p>
-                        </div>
-                        <div class="py-1 space-y-1">
-                            <button @click="setTab('pc'); openQuickAdd = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition">
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                <div>
-                                    <div class="font-bold text-slate-900">Input Laptop &amp; PC</div>
-                                    <div class="text-[10px] text-slate-400">Workstation &amp; DxDiag</div>
-                                </div>
-                            </button>
-
-                            <button @click="setTab('akun'); openQuickAdd = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition">
-                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                <div>
-                                    <div class="font-bold text-slate-900">Input HP &amp; Akun Sales</div>
-                                    <div class="text-[10px] text-slate-400">IMEI, Email &amp; Sosmed</div>
-                                </div>
-                            </button>
-
-                            <button @click="setTab('mikrotik'); openQuickAdd = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition">
-                                <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
-                                <div>
-                                    <div class="font-bold text-slate-900">Generate Hotspot MikroTik</div>
-                                    <div class="text-[10px] text-slate-400">Voucher &amp; User Profile</div>
-                                </div>
-                            </button>
-
-                            <button @click="setTab('guides'); openQuickAdd = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-amber-50 flex items-center gap-2.5 text-amber-900 transition">
-                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                                <div>
-                                    <div class="font-bold text-amber-950">Guide Book &amp; SOP</div>
-                                    <div class="text-[10px] text-amber-700">Dokumentasi sistem &amp; aset</div>
-                                </div>
-                            </button>
-
-                            <div class="border-t border-slate-100 my-1"></div>
-
-                            <button @click="openExportModal = true; openQuickAdd = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-emerald-50 flex items-center gap-2.5 text-emerald-800 transition">
-                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                <div>
-                                    <div class="font-bold text-emerald-900">Ekspor ke Excel (.xlsx)</div>
-                                    <div class="text-[10px] text-emerald-700">Unduh seluruh master database</div>
-                                </div>
-                            </button>
-
-                            <button @click="openImportModal = true; openQuickAdd = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-teal-50 flex items-center gap-2.5 text-teal-800 transition">
-                                <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                                <div>
-                                    <div class="font-bold text-teal-900">Impor dari Excel</div>
-                                    <div class="text-[10px] text-teal-700">Unggah berkas massal (.xlsx / .csv)</div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
-            <!-- Profile Dropdown -->
-            @if(Auth::check())
-                <div class="relative" @click.away="openProfileDropdown = false">
-                    <button @click="openProfileDropdown = !openProfileDropdown" class="flex items-center gap-2 px-2.5 py-1.5 rounded-full border transition-all duration-200 {{ Auth::user()->role === 'superadmin' ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20' : (Auth::user()->role === 'manager' ? 'bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20' : 'bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20') }}">
-                        <div class="w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-[11px] uppercase shadow-xs shrink-0 {{ Auth::user()->role === 'superadmin' ? 'bg-amber-500 text-slate-950' : (Auth::user()->role === 'manager' ? 'bg-blue-600 text-white' : 'bg-[#3A7D8A] text-white') }}">
-                            {{ substr(Auth::user()->name, 0, 1) }}
-                        </div>
-
-                        <div class="hidden sm:flex flex-col text-left">
-                            <span class="text-xs font-bold text-white leading-tight truncate max-w-[120px]">
-                                {{ Auth::user()->name }}
-                            </span>
-                            <span class="text-[9px] font-semibold leading-tight">
-                                @if(Auth::user()->role === 'superadmin')
-                                    <span class="text-amber-400 font-bold">👑 Superadmin</span>
-                                @elseif(Auth::user()->role === 'manager')
-                                    <span class="text-blue-300">👔 Manager</span>
-                                @else
-                                    <span class="text-teal-300">🏢 General Affair</span>
-                                @endif
-                            </span>
-                        </div>
-
-                        <svg class="w-3 h-3 text-slate-400 transition-transform duration-200" :class="openProfileDropdown ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-
-                    <!-- Profile Dropdown Menu -->
-                    <div x-show="openProfileDropdown" x-cloak class="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-3 z-50 text-slate-800 animate-in fade-in zoom-in-95">
-                        <div class="p-2 border-b border-slate-100 pb-3">
-                            <p class="text-xs font-bold text-slate-900">{{ Auth::user()->name }}</p>
-                            <p class="text-[11px] text-slate-500 font-mono">&#64;{{ Auth::user()->username }}</p>
-                            <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                PERAN: {{ strtoupper(Auth::user()->role) }}
-                            </div>
-                        </div>
-
-                        <div class="py-2 space-y-1">
-                            @if(Auth::user()->role === 'superadmin' || Auth::user()->can('manage users'))
-                                <button @click="setTab('superadmin'); openProfileDropdown = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-amber-50 flex items-center gap-2.5 text-amber-900 transition">
-                                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-                                    <span>👑 Pusat Kontrol Superadmin &amp; RBAC</span>
-                                </button>
-
-                                <button @click="setTab('superadmin'); subTab = 'erpnext'; openProfileDropdown = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition">
-                                    <span class="text-amber-500 text-sm">⚡</span>
-                                    <span>Integrasi ERPNext</span>
-                                </button>
-                            @endif
-
-                            <button @click="openLoginModal = true; openProfileDropdown = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition">
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                                <span>Ganti Akun / Peran</span>
-                            </button>
-
-                            <button @click="openGasModal = true; openProfileDropdown = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition">
-                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                <span>Setup Google Apps Script</span>
-                            </button>
-
-                            <button @click="openExportModal = true; openProfileDropdown = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-emerald-50 flex items-center gap-2.5 text-emerald-800 transition">
-                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                <span>Ekspor Data Excel (.xlsx)</span>
-                            </button>
-
-                            <button @click="openImportModal = true; openProfileDropdown = false" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold hover:bg-teal-50 flex items-center gap-2.5 text-teal-800 transition">
-                                <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                                <span>Impor Data Excel</span>
-                            </button>
-                        </div>
-
-                        <div class="border-t border-slate-100 pt-2">
-                            <form action="{{ route('logout') }}" method="POST">
-                                @csrf
-                                <button type="submit" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                                    <span>Keluar (Logout)</span>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            @else
-                <button @click="openLoginModal = true" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs shadow-md transition">
-                    <span>Masuk</span>
-                </button>
-            @endif
-
-            <!-- Mobile Menu Button (Hamburger) -->
-            <button @click="openMobileMenu = true" class="lg:hidden p-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 transition" aria-label="Buka menu navigasi">
-                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-            </button>
-        </div>
+        <!-- Mobile Only Close Button (✕) - Bukan Hamburger! Sembunyi di Desktop -->
+        <button @click="sidebarOpen = false" type="button" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer shrink-0" title="Tutup Menu">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
     </div>
-</header>
 
-<!-- Mobile Navigation Drawer -->
-<div x-show="openMobileMenu" x-cloak class="fixed inset-0 z-50 flex justify-end">
-    <div @click="openMobileMenu = false" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"></div>
+    <!-- Clean Navigation Links (Scrollable) -->
+    <div class="flex-1 overflow-y-auto px-3 py-4 space-y-4 text-xs scrollbar-thin scrollbar-thumb-slate-800">
+        
+        <!-- SECTION 1: MASTER DATA & INVENTARIS -->
+        <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2.5 mb-1.5 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#3A7D8A]"></span>
+                <span>Menu Utama</span>
+            </p>
+            <div class="space-y-1">
+                {{-- Spreadsheet 1:1 --}}
+                @if($canSpreadsheet)
+                    <button @click="setTab('spreadsheet')" 
+                            :class="activeTab === 'spreadsheet' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-md font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium'" 
+                            class="w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all duration-150 cursor-pointer">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            <span class="truncate">Spreadsheet 1:1</span>
+                        </div>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/40 text-slate-200 shrink-0">{{ $totalSubmissions ?? 0 }}</span>
+                    </button>
+                @endif
 
-    <aside class="relative w-full max-w-xs sm:max-w-sm bg-[#0F1D2E] border-l border-slate-800 text-white shadow-2xl flex flex-col h-full z-10 animate-in slide-in-from-right duration-200">
-        <!-- Drawer Header -->
-        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-                <div class="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg">
-                    <span class="font-black text-[#0F1D2E] text-xs font-sans">SYAMANAH</span>
-                </div>
-                <span class="font-bold text-xs text-white">ENTERPRISE ASSET</span>
-            </div>
-            <button @click="openMobileMenu = false" class="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-
-        <!-- Role Notice -->
-        <div class="p-4 bg-slate-900/80 border-b border-slate-800 text-xs">
-            <p class="text-slate-400 text-[11px]">Sedang Masuk Sebagai:</p>
-            <p class="font-bold text-white text-sm mt-0.5">{{ Auth::user()->name ?? 'Tamu' }}</p>
-            <div class="mt-1.5">
-                <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full {{ Auth::check() && Auth::user()->role === 'superadmin' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : (Auth::check() && Auth::user()->role === 'manager' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-teal-500/20 text-teal-400 border border-teal-500/30') }} uppercase">
-                    {{ Auth::check() && Auth::user()->role === 'superadmin' ? '👑 SUPERADMIN' : (Auth::check() && Auth::user()->role === 'manager' ? '👔 MANAGER' : '🏢 GENERAL AFFAIR') }}
-                </span>
-            </div>
-        </div>
-
-        <!-- Drawer Links -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-            @if(Auth::check() && Auth::user()->role === 'general_affair')
-                <!-- General Affair Mobile View -->
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-1.5">Inventaris Perangkat</p>
-                    <div class="space-y-1">
-                        <button @click="setTab('inventory'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>💻 Laptop &amp; PC Desktop</span>
-                            <span class="text-[11px] bg-black/30 px-2 py-0.5 rounded-full font-mono">{{ $deviceCount ?? 0 }}</span>
-                        </button>
-                        <button @click="setTab('phones'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>📱 HP Android Sales</span>
-                            <span class="text-[11px] bg-black/30 px-2 py-0.5 rounded-full font-mono">{{ $phoneCount ?? 0 }}</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-1.5">Input &amp; Guide Book</p>
-                    <div class="space-y-1">
-                        <button @click="setTab('pc'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>➕ Form Input Laptop &amp; PC</span>
-                        </button>
-                        <button @click="setTab('guides'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-amber-300 hover:bg-slate-800 transition">
-                            <span>📚 Guide Book &amp; SOP</span>
-                        </button>
-                        <button @click="openDxDiagModal = true; openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>📘 Panduan DxDiag Windows</span>
-                        </button>
-                    </div>
-                </div>
-            @else
-                <!-- Superadmin & Manager Mobile View -->
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-1.5">Inventaris &amp; Modul</p>
-                    <div class="space-y-1">
-                        <button @click="setTab('spreadsheet'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>📊 Data Spreadsheet 1:1</span>
-                            <span class="text-[11px] bg-black/30 px-2 py-0.5 rounded-full font-mono">{{ $totalSubmissions ?? 0 }}</span>
-                        </button>
-                        <button @click="setTab('inventory'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>💻 Laptop &amp; PC Workstation</span>
-                            <span class="text-[11px] bg-black/30 px-2 py-0.5 rounded-full font-mono">{{ $deviceCount ?? 0 }}</span>
-                        </button>
-                        <button @click="setTab('phones'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>📱 HP Android Sales</span>
-                            <span class="text-[11px] bg-black/30 px-2 py-0.5 rounded-full font-mono">{{ $phoneCount ?? 0 }}</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-1.5">Jaringan &amp; Audit</p>
-                    <div class="space-y-1">
-                        <button @click="setTab('mikrotik'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>📶 Hotspot Jaringan MikroTik</span>
-                        </button>
-                        <button @click="setTab('audit'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>🛡️ Audit Kredensial Perusahaan</span>
-                        </button>
-                        <button @click="setTab('guides'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-semibold text-amber-300 hover:bg-slate-800 transition">
-                            <span>📚 Guide Book &amp; SOP Sistem</span>
-                            <span class="text-[11px] bg-black/30 px-2 py-0.5 rounded-full font-mono">{{ count($guideBooks ?? []) }}</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 mb-1.5">Input &amp; Tambah Aset</p>
-                    <div class="space-y-1">
-                        <button @click="setTab('pc'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>➕ Form Input Laptop &amp; PC</span>
-                        </button>
-                        <button @click="setTab('akun'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-slate-300 hover:bg-slate-800 transition">
-                            <span>➕ Form Input HP &amp; Akun Sales</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-400/90 px-2 mb-1.5">Olah Data Excel</p>
-                    <div class="space-y-1">
-                        <button @click="openExportModal = true; openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-emerald-300 hover:bg-slate-800 transition">
-                            <span>📗 Ekspor Database Excel (.xlsx)</span>
-                        </button>
-                        <button @click="openImportModal = true; openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold text-teal-300 hover:bg-slate-800 transition">
-                            <span>📥 Impor Data dari Excel</span>
-                        </button>
-                    </div>
-                </div>
-
-                @if(Auth::check() && (Auth::user()->role === 'superadmin' || Auth::user()->can('manage users')))
-                    <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-amber-400/80 px-2 mb-1.5">Kontrol Superadmin &amp; RBAC</p>
-                        <div class="space-y-1">
-                            <button @click="setTab('superadmin'); openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-bold bg-amber-500/20 text-amber-300 transition">
-                                <span>👑 Pusat Kontrol &amp; RBAC</span>
+                {{-- Laptop & PC (dengan Submenu Input PC & Panduan DxDiag) --}}
+                @if($canInventory)
+                    <div x-data="{ open: true }" class="space-y-0.5">
+                        <div class="flex items-center gap-1">
+                            <button type="button" 
+                                    @click="setTab('inventory')" 
+                                    :class="['inventory', 'pc'].includes(activeTab) ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-md font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium'" 
+                                    class="flex-1 text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all duration-150 cursor-pointer">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                    <span class="truncate">Laptop &amp; PC</span>
+                                </div>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/40 text-slate-200 shrink-0">{{ $deviceCount ?? 0 }}</span>
                             </button>
-                            <button @click="setTab('superadmin'); subTab = 'erpnext'; openMobileMenu = false" class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-bold text-amber-300 hover:bg-slate-800 transition">
-                                <span>⚡ Integrasi ERPNext</span>
+                            <button type="button" 
+                                    @click="open = !open" 
+                                    class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition cursor-pointer shrink-0" 
+                                    title="Tampilkan / Sembunyikan Submenu">
+                                <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- Submenu: Data Perangkat, Input PC Baru, Panduan DxDiag -->
+                        <div x-show="open" x-cloak class="pl-4 pr-1 py-1 space-y-0.5 border-l-2 border-slate-700/60 ml-3.5 transition-all">
+                            <button type="button" 
+                                    @click="setTab('inventory')" 
+                                    :class="activeTab === 'inventory' ? 'text-teal-300 font-bold bg-slate-800/90' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'" 
+                                    class="w-full text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 transition cursor-pointer text-xs">
+                                <span class="text-xs">📋</span>
+                                <span class="truncate">Daftar Perangkat</span>
+                            </button>
+
+                            <button type="button" 
+                                    @click="openPcModal = true; if(window.innerWidth < 1024) sidebarOpen = false;" 
+                                    class="w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 text-emerald-400/90 hover:text-emerald-300 hover:bg-slate-800/50 font-semibold transition cursor-pointer text-xs">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="text-xs">➕</span>
+                                    <span class="truncate">Form Input PC</span>
+                                </div>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">Pop-up</span>
+                            </button>
+
+                            <button type="button" 
+                                    @click="openDxDiagModal = true" 
+                                    class="w-full text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium transition cursor-pointer text-xs">
+                                <span class="text-xs">📘</span>
+                                <span class="truncate">Panduan DxDiag</span>
                             </button>
                         </div>
                     </div>
                 @endif
-            @endif
+
+                {{-- HP Android / Akun Sales (dengan Submenu Input Akun) --}}
+                @if($canPhones)
+                    <div x-data="{ open: true }" class="space-y-0.5">
+                        <div class="flex items-center gap-1">
+                            <button type="button" 
+                                    @click="setTab('phones')" 
+                                    :class="['phones', 'akun'].includes(activeTab) ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-md font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium'" 
+                                    class="flex-1 text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all duration-150 cursor-pointer">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                    <span class="truncate">HP {{ $isGA ? 'Android' : 'Sales' }}</span>
+                                </div>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/40 text-slate-200 shrink-0">{{ $phoneCount ?? 0 }}</span>
+                            </button>
+                            <button type="button" 
+                                    @click="open = !open" 
+                                    class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition cursor-pointer shrink-0" 
+                                    title="Tampilkan / Sembunyikan Submenu">
+                                <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- Submenu: Data HP & Akun, Input HP & Akun -->
+                        <div x-show="open" x-cloak class="pl-4 pr-1 py-1 space-y-0.5 border-l-2 border-slate-700/60 ml-3.5 transition-all">
+                            <button type="button" 
+                                    @click="setTab('phones')" 
+                                    :class="activeTab === 'phones' ? 'text-amber-300 font-bold bg-slate-800/90' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'" 
+                                    class="w-full text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 transition cursor-pointer text-xs">
+                                <span class="text-xs">📱</span>
+                                <span class="truncate">Daftar HP &amp; Akun</span>
+                            </button>
+
+                            <button type="button" 
+                                    @click="openAkunModal = true; if(window.innerWidth < 1024) sidebarOpen = false;" 
+                                    class="w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 text-amber-400/90 hover:text-amber-300 hover:bg-slate-800/50 font-semibold transition cursor-pointer text-xs">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="text-xs">➕</span>
+                                    <span class="truncate">Form Input Akun</span>
+                                </div>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">Pop-up</span>
+                            </button>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Hotspot MikroTik --}}
+                @if($canMikrotik)
+                    <button @click="setTab('mikrotik')" 
+                            :class="activeTab === 'mikrotik' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-md font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium'" 
+                            class="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-all duration-150 cursor-pointer">
+                        <svg class="w-4 h-4 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
+                        <span class="truncate">Hotspot MikroTik</span>
+                    </button>
+                @endif
+
+                {{-- Audit Kredensial --}}
+                @if($canAudit)
+                    <button @click="setTab('audit')" 
+                            :class="activeTab === 'audit' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-md font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium'" 
+                            class="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-all duration-150 cursor-pointer">
+                        <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        <span class="truncate">Audit Kredensial</span>
+                    </button>
+                @endif
+
+                {{-- Guide Book & SOP --}}
+                @if($canGuides)
+                    <button @click="setTab('guides')" 
+                            :class="activeTab === 'guides' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-md font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium'" 
+                            class="w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all duration-150 cursor-pointer">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                            <span class="truncate">Guide Book &amp; SOP</span>
+                        </div>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/40 text-slate-200 shrink-0">{{ count($guideBooks ?? []) }}</span>
+                    </button>
+                @endif
+            </div>
         </div>
 
-        <!-- Drawer Bottom Action -->
-        <div class="p-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
-            <button @click="openLoginModal = true; openMobileMenu = false" class="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white">
-                <span>Ganti Akun</span>
+        <!-- SECTION 2: OLAH DATA EXCEL -->
+        @if($canExcel)
+            <div class="pt-2 border-t border-slate-800/60">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-400/90 px-2.5 mb-1.5 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>Olah Data Excel</span>
+                </p>
+                <div class="space-y-1">
+                    <button type="button" @click="openExportModal = true" 
+                            class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium transition cursor-pointer">
+                        <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="truncate">Ekspor Excel (.xlsx)</span>
+                    </button>
+
+                    <button type="button" @click="openImportModal = true" 
+                            class="w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium transition cursor-pointer">
+                        <svg class="w-4 h-4 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <span class="truncate">Impor Data Excel</span>
+                    </button>
+                </div>
+            </div>
+        @endif
+
+        <!-- SECTION 3: KONTROL SUPERADMIN -->
+        @if($canSuperadmin)
+            <div class="pt-2 border-t border-slate-800/60">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-amber-400 px-2.5 mb-1.5 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    <span>Administrasi</span>
+                </p>
+                <div class="space-y-1">
+                    <button @click="setTab('superadmin')" 
+                            :class="activeTab === 'superadmin' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg ring-1 ring-amber-300/40' : 'text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 font-bold'" 
+                            class="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-all duration-150 cursor-pointer">
+                        <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                        <span class="truncate">👑 Pusat Kontrol &amp; RBAC</span>
+                    </button>
+                </div>
+            </div>
+        @endif
+
+    </div>
+
+    <!-- Sidebar Bottom: User Profile & Logout -->
+    <div class="p-3.5 border-t border-slate-800 bg-slate-950/90 shrink-0 space-y-2.5">
+        <!-- User Profile Badge (Diletakkan di atas tombol Logout) -->
+        @if(Auth::check())
+            <div class="px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2.5 shadow-xs">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs uppercase shadow-xs shrink-0 {{ $avatarBg }}">
+                    {{ substr(Auth::user()->name, 0, 1) }}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="text-xs font-bold text-white truncate leading-tight">
+                        {{ Auth::user()->name }}
+                    </div>
+                    <div class="text-[10px] {{ $roleColor }} font-semibold truncate leading-tight mt-0.5">
+                        {{ $roleLabel }}
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- Logout Form -->
+        <form action="{{ route('logout') }}" method="POST">
+            @csrf
+            <button type="submit" class="w-full py-2 px-3 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center justify-center gap-2 transition border border-rose-500/20 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <span>Keluar (Logout)</span>
             </button>
-
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="flex items-center gap-1.5 text-xs font-bold text-red-400 hover:text-red-300">
-                    <span>Keluar</span>
-                </button>
-            </form>
-        </div>
-    </aside>
-</div>
+        </form>
+    </div>
+</aside>

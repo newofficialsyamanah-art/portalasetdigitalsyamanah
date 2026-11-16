@@ -17,6 +17,14 @@ class SuperadminController extends Controller
      */
     public function storeUser(Request $request)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage users') && $authUser->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk mengelola pengguna.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki wewenang untuk mengelola pengguna.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:50|unique:users,username',
@@ -60,6 +68,14 @@ class SuperadminController extends Controller
      */
     public function updateUser(Request $request, int $id)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage users') && $authUser->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk mengelola pengguna.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki wewenang untuk mengelola pengguna.');
+        }
+
         $user = User::findOrFail($id);
         
         $request->validate([
@@ -109,6 +125,14 @@ class SuperadminController extends Controller
      */
     public function destroyUser(Request $request, int $id)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage users') && $authUser->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk menghapus pengguna.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki wewenang untuk menghapus pengguna.');
+        }
+
         if (Auth::id() === $id) {
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri saat sedang aktif digunakan.');
         }
@@ -132,11 +156,24 @@ class SuperadminController extends Controller
      */
     public function updateRolePermissions(Request $request, string $roleName)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage rbac') && $authUser->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah hak akses peran (RBAC).'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah hak akses peran (RBAC).');
+        }
+
         $role = Role::where('name', $roleName)->firstOrFail();
         
-        // Ambil array izin dari checkbox form
-        $permissions = $request->input('permissions', []);
-        $role->syncPermissions($permissions);
+        // Superadmin selalu memiliki seluruh izin (Bypass Master)
+        if ($roleName === 'superadmin') {
+            $role->syncPermissions(Permission::all());
+        } else {
+            // Ambil array izin dari checkbox form
+            $permissions = $request->input('permissions', []);
+            $role->syncPermissions($permissions);
+        }
 
         // Refresh cache permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
@@ -157,6 +194,14 @@ class SuperadminController extends Controller
      */
     public function storeRole(Request $request)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage rbac') && $authUser->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk membuat peran baru.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki wewenang untuk membuat peran baru.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:50',
         ]);
@@ -194,6 +239,14 @@ class SuperadminController extends Controller
      */
     public function destroyRole(Request $request, string $roleName)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage rbac') && $authUser->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk menghapus peran.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki wewenang untuk menghapus peran.');
+        }
+
         if (in_array($roleName, ['superadmin', 'manager', 'general_affair'])) {
             return back()->with('error', "Peran sistem inti '{$roleName}' tidak boleh dihapus demi integritas keamanan.");
         }
@@ -227,6 +280,14 @@ class SuperadminController extends Controller
      */
     public function updateConfig(Request $request)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage spreadsheet') && $authUser->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk mengonfigurasi integrasi spreadsheet.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki wewenang untuk mengonfigurasi integrasi spreadsheet.');
+        }
+
         $keys = ['gasUrl', 'spreadsheetId', 'driveFolderId', 'superadminPin'];
         foreach ($keys as $k) {
             if ($request->has($k)) {

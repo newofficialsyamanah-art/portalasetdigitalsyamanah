@@ -7,6 +7,7 @@ use App\Models\Submission;
 use App\Models\Division;
 use App\Services\ERPNextService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class ERPNextController extends Controller
@@ -16,6 +17,14 @@ class ERPNextController extends Controller
      */
     public function saveConfig(Request $request)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage erpnext') && $authUser->role !== 'superadmin') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk mengelola integrasi ERPNext.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki wewenang untuk mengelola integrasi ERPNext.');
+        }
+
         $request->validate([
             'erpnextUrl' => 'required|string',
             'erpnextApiKey' => 'required|string',
@@ -201,6 +210,11 @@ class ERPNextController extends Controller
      */
     public function pushAsset(Request $request)
     {
+        $authUser = Auth::user();
+        if ($authUser && !$authUser->can('manage erpnext') && $authUser->role !== 'superadmin') {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk sinkronisasi aset ke ERPNext.'], 403);
+        }
+
         $isDemo = $request->boolean('isDemo');
 
         // Handle Demonstration / Simulation Mode

@@ -25,11 +25,17 @@ class DatabaseSeeder extends Seeder
         $permissions = [
             'view credentials',
             'manage users',
+            'manage rbac',
+            'manage systems',
             'manage divisions',
             'manage inventory',
             'manage mikrotik',
-            'delete records',
+            'view guidebooks',
             'manage guidebooks',
+            'manage erpnext',
+            'manage excel',
+            'manage spreadsheet',
+            'delete records',
         ];
 
         foreach ($permissions as $permName) {
@@ -47,11 +53,16 @@ class DatabaseSeeder extends Seeder
             'view credentials',
             'manage inventory',
             'manage mikrotik',
-            'delete records',
+            'view guidebooks',
             'manage guidebooks',
+            'manage systems',
+            'manage divisions',
+            'manage excel',
+            'delete records',
         ]);
         $gaRole->syncPermissions([
             'manage inventory',
+            'view guidebooks',
         ]);
 
         // 3. Seed Default Users with Spatie Roles

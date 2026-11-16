@@ -1,4 +1,26 @@
 <!-- Tab: Guide Book & SOP Sistem -->
+@php
+    $canViewGuidesTab = Auth::check() && (Auth::user()->can('view guidebooks') || Auth::user()->can('manage guidebooks') || Auth::user()->hasRole('superadmin'));
+@endphp
+
+@if(!$canViewGuidesTab)
+    <div x-show="activeTab === 'guides'" x-cloak class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm space-y-4">
+        <div class="w-16 h-16 rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-3xl mx-auto shadow-xs">
+            🔒
+        </div>
+        <div>
+            <h3 class="font-extrabold text-base text-slate-900">Akses Terbatas: Dokumen Rahasia Perusahaan</h3>
+            <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+                Anda tidak memiliki wewenang untuk membaca Guide Book &amp; SOP Sistem. Silakan hubungi Superadmin untuk mengaktifkan izin <code>Melihat Guide Book &amp; SOP (view-only)</code>.
+            </p>
+        </div>
+        <div class="pt-2">
+            <button type="button" @click="setTab('inventory')" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition">
+                Kembali ke Inventaris
+            </button>
+        </div>
+    </div>
+@else
 <div x-show="activeTab === 'guides'" x-cloak class="space-y-6" x-data="guideBookHandler()">
 
     <!-- Top Header & Filter Controls -->
@@ -34,53 +56,22 @@
             </select>
 
             <!-- System Filter (Dikelola di Superadmin) -->
-            <select x-model="selectedSystem" @change="selectedFeature = 'all'" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
+            <select x-model="selectedSystem" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
                 <option value="all">🖥️ Semua Sistem (Superadmin)</option>
                 @foreach($appSystems as $sys)
                     <option value="{{ $sys->name }}">{{ $sys->icon }} {{ $sys->name }}</option>
                 @endforeach
             </select>
 
-            <!-- Feature Filter Dropdown (Dikelola di Superadmin) -->
-            <select x-model="selectedFeature" x-show="availableFeatures.length > 0" class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50/50 text-xs font-semibold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden">
-                <option value="all">⚡ Semua Fitur</option>
-                <template x-for="feat in availableFeatures" :key="feat">
-                    <option :value="feat" x-text="'⚡ ' + feat"></option>
-                </template>
-            </select>
-
-            <!-- Add Guide (Accessible to users) -->
+            <!-- Add Guide (Accessible to users with permission) -->
+            @can('manage guidebooks')
             <button type="button" @click="openAdd()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer">
                 <span>+ Buat / Unggah PDF</span>
             </button>
+            @endcan
         </div>
     </div>
 
-    <!-- Security & DRM Policy Banner -->
-    <div class="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-base shrink-0">
-                🛡️
-            </div>
-            <div>
-                <span class="font-bold text-white text-xs sm:text-sm">Kebijakan Keamanan Dokumen CONFIDENTIAL Perusahaan (DRM Active)</span>
-                <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                    Seluruh dokumen panduan sistem berstatus CONFIDENTIAL di bawah kewenangan Tim Business Analyst. Dilarang keras mengunduh, mencetak, atau mengambil tangkapan layar (anti-screenshot aktif).
-                </p>
-            </div>
-        </div>
-        <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
-            <span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-rose-950/80 text-rose-300 border border-rose-800/60">
-                <span>🚫 No Download</span>
-            </span>
-            <span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-rose-950/80 text-rose-300 border border-rose-800/60">
-                <span>🚫 No Print</span>
-            </span>
-            <span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-rose-950/80 text-rose-300 border border-rose-800/60">
-                <span>🚫 Anti-Capture</span>
-            </span>
-        </div>
-    </div>
 
     <!-- Quick Division / Tim Filter Pills (Dikelola Superadmin) -->
     <div class="space-y-2">
@@ -124,13 +115,13 @@
                 <span>🖥️ Filter Cepat Berdasarkan Sistem (Superadmin):</span>
             </span>
             <span class="text-[11px]" x-show="selectedSystem !== 'all'" x-cloak>
-                <button type="button" @click="selectedSystem = 'all'; selectedFeature = 'all'" class="text-[#3A7D8A] hover:underline font-bold cursor-pointer">
+                <button type="button" @click="selectedSystem = 'all'" class="text-[#3A7D8A] hover:underline font-bold cursor-pointer">
                     ✕ Reset Sistem
                 </button>
             </span>
         </div>
         <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
-            <button type="button" @click="selectedSystem = 'all'; selectedFeature = 'all'" :class="selectedSystem === 'all' ? 'bg-slate-800 text-white font-bold shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'" class="px-3.5 py-1.5 rounded-full transition shrink-0 flex items-center gap-1.5 cursor-pointer">
+            <button type="button" @click="selectedSystem = 'all'" :class="selectedSystem === 'all' ? 'bg-slate-800 text-white font-bold shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'" class="px-3.5 py-1.5 rounded-full transition shrink-0 flex items-center gap-1.5 cursor-pointer">
                 <span>🖥️ Semua Sistem</span>
                 <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="selectedSystem === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'">{{ count($guideBooks) }}</span>
             </button>
@@ -139,7 +130,7 @@
                 @php
                     $sysCount = $guideBooks->where('system_name', $sys->name)->count();
                 @endphp
-                <button type="button" @click="selectedSystem = '{{ addslashes($sys->name) }}'; selectedFeature = 'all'" :class="selectedSystem === '{{ addslashes($sys->name) }}' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white font-bold shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'" class="px-3 py-1.5 rounded-full transition shrink-0 flex items-center gap-1.5 cursor-pointer">
+                <button type="button" @click="selectedSystem = '{{ addslashes($sys->name) }}'" :class="selectedSystem === '{{ addslashes($sys->name) }}' ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white font-bold shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'" class="px-3 py-1.5 rounded-full transition shrink-0 flex items-center gap-1.5 cursor-pointer">
                     <span>{{ $sys->icon ?: '🖥️' }}</span>
                     <span>{{ $sys->name }}</span>
                     @if($sysCount > 0)
@@ -147,30 +138,6 @@
                     @endif
                 </button>
             @endforeach
-        </div>
-    </div>
-
-    <!-- Quick Features Filter Pills (Muncul Dinamis Berdasarkan Fitur yang Dikelola di Superadmin) -->
-    <div x-show="availableFeatures.length > 0" x-cloak class="p-3 bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-indigo-50/80 rounded-2xl border border-indigo-100 space-y-2 animate-in fade-in">
-        <div class="flex items-center justify-between text-xs text-indigo-900">
-            <span class="font-bold flex items-center gap-1.5">
-                <span>⚡ Filter Fitur Terdaftar di Superadmin:</span>
-                <span class="text-[11px] font-semibold text-indigo-700 bg-white/80 px-2 py-0.5 rounded-md border border-indigo-200" x-text="selectedSystem === 'all' ? 'Seluruh Sistem' : selectedSystem"></span>
-            </span>
-            <button type="button" @click="selectedFeature = 'all'" x-show="selectedFeature !== 'all'" class="text-[11px] text-indigo-700 hover:text-indigo-900 hover:underline font-bold cursor-pointer">
-                ✕ Reset Filter Fitur
-            </button>
-        </div>
-        <div class="flex items-center gap-1.5 flex-wrap">
-            <button type="button" @click="selectedFeature = 'all'" :class="selectedFeature === 'all' ? 'bg-indigo-600 text-white font-bold shadow-xs' : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-100/70'" class="px-3 py-1 rounded-xl text-xs transition cursor-pointer">
-                🌟 Semua Fitur
-            </button>
-            <template x-for="feat in availableFeatures" :key="feat">
-                <button type="button" @click="selectedFeature = feat" :class="selectedFeature === feat ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold shadow-xs' : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-100/70'" class="px-3 py-1 rounded-xl text-xs transition cursor-pointer flex items-center gap-1">
-                    <span>⚡</span>
-                    <span x-text="feat"></span>
-                </button>
-            </template>
         </div>
     </div>
 
@@ -279,13 +246,17 @@
                     </button>
 
                     <div class="flex items-center gap-2">
+                        @can('manage guidebooks')
                         <button type="button" @click="openEditById({{ $guide->id }})" class="p-2 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-xl transition cursor-pointer" title="Edit Metadata & File PDF">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                         </button>
+                        @endcan
 
+                        @can('delete records')
                         <button type="button" @click="confirmDeleteById({{ $guide->id }})" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer" title="Hapus Dokumen PDF">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -298,11 +269,13 @@
                 <p class="text-xs text-slate-500 max-w-md mx-auto">
                     Seluruh dokumen dummy telah dibersihkan. Anda dapat menambahkan buku panduan atau SOP sistem resmi baru kapan saja melalui tombol di bawah.
                 </p>
+                @can('manage guidebooks')
                 <div class="pt-2">
                     <button type="button" @click="openAdd()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] hover:brightness-110 text-white font-bold text-xs shadow-md transition inline-flex items-center gap-2 cursor-pointer">
                         <span>+ Buat / Unggah SOP Baru (PDF)</span>
                     </button>
                 </div>
+                @endcan
             </div>
         @endforelse
     </div>
@@ -655,6 +628,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <script>
     function guideBookHandler() {

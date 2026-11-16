@@ -16,6 +16,13 @@ class GuideBookController extends Controller
         GuideBook::ensureTableExists();
         $user = Auth::user();
 
+        if ($user && !$user->can('manage guidebooks') && $user->role !== 'superadmin') {
+            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk mengunggah / membuat Guide Book.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk mengunggah / membuat Guide Book.');
+        }
+
         $validated = $request->validate([
             'target_division' => 'nullable|string|max:100',
             'target_role' => 'nullable|string|max:100',
@@ -149,6 +156,13 @@ class GuideBookController extends Controller
         GuideBook::ensureTableExists();
         $user = Auth::user();
 
+        if ($user && !$user->can('manage guidebooks') && $user->role !== 'superadmin') {
+            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk mengubah Guide Book.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk mengubah Guide Book.');
+        }
+
         // Safe lookup: find by id, then by title, or fallback to store
         $guide = GuideBook::find($id);
         if (!$guide && $request->filled('title')) {
@@ -245,6 +259,14 @@ class GuideBookController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        $user = Auth::user();
+        if ($user && !$user->can('delete records') && !$user->can('manage guidebooks') && $user->role !== 'superadmin') {
+            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk menghapus Guide Book.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki izin untuk menghapus Guide Book.');
+        }
+
         $guide = GuideBook::find($id);
         if (!$guide) {
             if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
@@ -277,6 +299,11 @@ class GuideBookController extends Controller
 
     public function show(Request $request, $id)
     {
+        $user = Auth::user();
+        if ($user && !$user->can('view guidebooks') && !$user->can('manage guidebooks') && $user->role !== 'superadmin') {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki izin untuk melihat Guide Book.'], 403);
+        }
+
         $guide = GuideBook::find($id);
         if (!$guide) {
             return response()->json(['success' => false, 'message' => 'Dokumen tidak ditemukan'], 404);
@@ -294,6 +321,14 @@ class GuideBookController extends Controller
      */
     public function streamPdf(Request $request, $id)
     {
+        $user = Auth::user();
+        if ($user && !$user->can('view guidebooks') && !$user->can('manage guidebooks') && $user->role !== 'superadmin') {
+            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk membaca dokumen PDF ini.'], 403);
+            }
+            abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk membaca dokumen PDF ini.');
+        }
+
         $guide = GuideBook::find($id);
         if (!$guide) {
             if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {

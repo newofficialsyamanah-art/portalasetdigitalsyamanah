@@ -14,6 +14,64 @@ class SubmissionController extends Controller
         $id = $type . '_' . uniqid();
         $payload = $request->input('data', $request->except(['_token', 'type']));
 
+        // Handle file attachments (Bukti Display, Bukti Sound, Bukti Input, Foto Fisik)
+        $attachmentFields = [
+            'file_display' => 'displayLink',
+            'file_sound' => 'soundLink',
+            'file_input' => 'inputLink',
+            'foto' => 'foto',
+        ];
+
+        foreach ($attachmentFields as $inputKey => $payloadKey) {
+            if ($request->hasFile($inputKey)) {
+                $file = $request->file($inputKey);
+                if ($file->isValid()) {
+                    $ext = $file->getClientOriginalExtension() ?: 'jpg';
+                    $filename = time() . '_' . $inputKey . '_' . uniqid() . '.' . $ext;
+                    $destinationPath = public_path('uploads/assets');
+                    if (!file_exists($destinationPath)) {
+                        mkdir($destinationPath, 0755, true);
+                    }
+                    $file->move($destinationPath, $filename);
+                    $payload[$payloadKey] = '/uploads/assets/' . $filename;
+                    $payload[$payloadKey . '_nama'] = $file->getClientOriginalName();
+                }
+            }
+        }
+
+        // Handle dynamic accounts array from HP form
+        if ($request->has('accounts')) {
+            $accounts = $request->input('accounts');
+            if (is_array($accounts)) {
+                $cleanAccounts = [];
+                foreach ($accounts as $acc) {
+                    if (!empty($acc['username']) || !empty($acc['identifier'])) {
+                        $cleanAccounts[] = [
+                            'platform' => $acc['platform'] ?? 'Lainnya',
+                            'username' => $acc['username'] ?? ($acc['identifier'] ?? ''),
+                            'password' => $acc['password'] ?? '-'
+                        ];
+                    }
+                }
+                $payload['accounts'] = $cleanAccounts;
+
+                // Sync first matching platform to legacy fields
+                foreach ($cleanAccounts as $acc) {
+                    $p = strtolower($acc['platform']);
+                    if (str_contains($p, 'email') && empty($payload['email1'])) {
+                        $payload['email1'] = $acc['username'];
+                        $payload['passEmail1'] = $acc['password'];
+                    } elseif ((str_contains($p, 'ig') || str_contains($p, 'instagram')) && empty($payload['ig1'])) {
+                        $payload['ig1'] = $acc['username'];
+                        $payload['passIg1'] = $acc['password'];
+                    } elseif ((str_contains($p, 'fb') || str_contains($p, 'facebook')) && empty($payload['fb1'])) {
+                        $payload['fb1'] = $acc['username'];
+                        $payload['passFb1'] = $acc['password'];
+                    }
+                }
+            }
+        }
+
         $nama = $payload['nama'] ?? $payload['namaLengkap'] ?? ($payload['computerName'] ?? 'Aset Syamanah');
         $departemen = $payload['departemen'] ?? $payload['kategori'] ?? 'Umum';
         $jabatan = $payload['jabatan'] ?? '-';
@@ -48,6 +106,49 @@ class SubmissionController extends Controller
         $submission = Submission::findOrFail($id);
         $payload = $request->input('data', $request->except(['_token', '_method']));
 
+        // Handle file attachments (Bukti Display, Bukti Sound, Bukti Input, Foto Fisik)
+        $attachmentFields = [
+            'file_display' => 'displayLink',
+            'file_sound' => 'soundLink',
+            'file_input' => 'inputLink',
+            'foto' => 'foto',
+        ];
+
+        foreach ($attachmentFields as $inputKey => $payloadKey) {
+            if ($request->hasFile($inputKey)) {
+                $file = $request->file($inputKey);
+                if ($file->isValid()) {
+                    $ext = $file->getClientOriginalExtension() ?: 'jpg';
+                    $filename = time() . '_' . $inputKey . '_' . uniqid() . '.' . $ext;
+                    $destinationPath = public_path('uploads/assets');
+                    if (!file_exists($destinationPath)) {
+                        mkdir($destinationPath, 0755, true);
+                    }
+                    $file->move($destinationPath, $filename);
+                    $payload[$payloadKey] = '/uploads/assets/' . $filename;
+                    $payload[$payloadKey . '_nama'] = $file->getClientOriginalName();
+                }
+            }
+        }
+
+        // Handle dynamic accounts array from HP form
+        if ($request->has('accounts')) {
+            $accounts = $request->input('accounts');
+            if (is_array($accounts)) {
+                $cleanAccounts = [];
+                foreach ($accounts as $acc) {
+                    if (!empty($acc['username']) || !empty($acc['identifier'])) {
+                        $cleanAccounts[] = [
+                            'platform' => $acc['platform'] ?? 'Lainnya',
+                            'username' => $acc['username'] ?? ($acc['identifier'] ?? ''),
+                            'password' => $acc['password'] ?? '-'
+                        ];
+                    }
+                }
+                $payload['accounts'] = $cleanAccounts;
+            }
+        }
+
         // Merge updated fields with existing data
         $mergedData = array_merge($submission->data ?? [], $payload);
 
@@ -78,11 +179,11 @@ class SubmissionController extends Controller
     public function destroy(Request $request, string $id)
     {
         $user = Auth::user();
-        if ($user && $user->role === 'general_affair') {
+        if ($user && !$user->can('delete records') && $user->role !== 'superadmin') {
             if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'Akses ditolak: General Affair tidak memiliki izin menghapus data.'], 403);
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Anda tidak memiliki hak akses untuk menghapus rekaman data ini.'], 403);
             }
-            return back()->with('error', 'Akses ditolak: General Affair tidak memiliki izin menghapus data.');
+            return back()->with('error', 'Akses ditolak: Anda tidak memiliki hak akses untuk menghapus rekaman data ini.');
         }
 
         $submission = Submission::findOrFail($id);

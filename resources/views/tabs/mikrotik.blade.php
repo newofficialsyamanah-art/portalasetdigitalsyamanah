@@ -19,6 +19,7 @@
                 <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
 
+            @can('manage excel')
             <button type="button" @click="exportToExcel('mikrotik')" class="px-3 py-2 rounded-xl border border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-900 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs" title="Ekspor Data MikroTik ke Excel">
                 <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <span>Ekspor MikroTik</span>
@@ -28,25 +29,36 @@
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 <span>Impor</span>
             </button>
+            @endcan
         </div>
     </div>
 
     <!-- Generator Form & Quick Add -->
+    @can('manage mikrotik')
     <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-100 space-y-4" x-data="{
         namaPemilik: '',
-        tim: 'Sales Jaket',
+        tim: '{{ $divisions[0] ?? 'Sales Jaket' }}',
+        divisions: {{ json_encode(array_values($divisions)) }},
         jabatan: 'Staff',
         username: '',
         password: Math.floor(100000 + Math.random() * 900000).toString(),
         rateLimit: '10M/10M',
         profile: 'sales_jaket',
+        init() {
+            this.generateCredentials();
+            window.addEventListener('division-added', (e) => {
+                if (e.detail && e.detail.name && !this.divisions.includes(e.detail.name)) {
+                    this.divisions.push(e.detail.name);
+                }
+            });
+        },
         generateCredentials() {
             const prefix = this.tim.substring(0, 2).toUpperCase();
             const rand = Math.floor(10 + Math.random() * 89);
             this.username = prefix + rand;
             this.password = Math.floor(100000 + Math.random() * 900000).toString();
         }
-    }" x-init="generateCredentials()">
+    }">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-teal-500"></span>
@@ -67,9 +79,9 @@
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">Divisi / Tim Sales</label>
                 <select name="tim" x-model="tim" @change="generateCredentials()" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#3A7D8A] focus:outline-hidden">
-                    @foreach($divisions as $div)
-                        <option value="{{ $div }}">{{ $div }}</option>
-                    @endforeach
+                    <template x-for="div in divisions" :key="div">
+                        <option :value="div" x-text="div"></option>
+                    </template>
                 </select>
             </div>
 
@@ -90,6 +102,7 @@
             </div>
         </form>
     </div>
+    @endcan
 
     <!-- MikroTik Accounts Table -->
     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
@@ -120,7 +133,11 @@
                             <!-- Credentials -->
                             <td class="py-3.5 px-4">
                                 <div class="font-mono font-bold text-teal-800">{{ $m->username }}</div>
-                                <div class="font-mono text-slate-500 text-[11px]">Pass: {{ $m->password }}</div>
+                                @can('view credentials')
+                                    <div class="font-mono text-slate-500 text-[11px]">Pass: {{ $m->password }}</div>
+                                @else
+                                    <div class="font-mono text-slate-400 text-[11px]">Pass: ••••••</div>
+                                @endcan
                             </td>
 
                             <!-- Profile & Rate Limit -->
@@ -153,6 +170,7 @@
 
                             <!-- Aksi -->
                             <td class="py-3.5 px-4 text-right">
+                                @can('delete records')
                                 <form action="{{ route('mikrotik.destroy', $m->id) }}" method="POST" class="inline" onsubmit="return confirm('Hapus akun MikroTik ini?')">
                                     @csrf
                                     @method('DELETE')
@@ -160,6 +178,7 @@
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                     </button>
                                 </form>
+                                @endcan
                             </td>
                         </tr>
                     @empty
