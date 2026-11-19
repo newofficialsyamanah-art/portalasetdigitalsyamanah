@@ -382,6 +382,13 @@
                         this.sidebarOpen = false;
                     }
                 },
+                setSubTab(tab) {
+                    this.subTab = tab;
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', this.activeTab);
+                    url.searchParams.set('subTab', tab);
+                    window.history.replaceState(null, '', url);
+                },
                 init() {
                     const params = new URLSearchParams(window.location.search);
                     const tab = params.get('tab');
@@ -437,6 +444,7 @@
 
                 // Superadmin Sub-Tab & User Management
                 subTab: '{{ request()->query("subTab", "users") }}',
+                showCreateRoleModal: false,
                 showEditUserModal: false,
                 editUserData: {
                     id: '',

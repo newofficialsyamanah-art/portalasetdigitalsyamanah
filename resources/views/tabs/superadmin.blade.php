@@ -18,25 +18,25 @@
         <!-- Sub-Nav Pill Buttons (Fokus Master & RBAC Admin) -->
         <div class="flex flex-wrap items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
             @if(Auth::user()->hasRole('superadmin') || Auth::user()->can('manage users'))
-            <button @click="subTab = 'users'" :class="subTab === 'users' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer">
+            <button @click="setSubTab('users')" :class="subTab === 'users' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer">
                 👥 Kelola Pengguna
             </button>
             @endif
 
             @if(Auth::user()->hasRole('superadmin') || Auth::user()->can('manage rbac'))
-            <button @click="subTab = 'rbac'" :class="subTab === 'rbac' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer">
+            <button @click="setSubTab('rbac')" :class="subTab === 'rbac' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer">
                 🛡️ Hak Akses &amp; Peran (RBAC)
             </button>
             @endif
 
             @if(Auth::user()->hasRole('superadmin') || Auth::user()->can('manage systems'))
-            <button @click="subTab = 'systems'" :class="subTab === 'systems' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-2.5 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer">
+            <button @click="setSubTab('systems')" :class="subTab === 'systems' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-2.5 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer">
                 <span>🖥️ Kelola Sistem &amp; Fitur</span>
             </button>
             @endif
 
             @if(Auth::user()->hasRole('superadmin') || Auth::user()->can('manage divisions'))
-            <button @click="subTab = 'divisions'" :class="subTab === 'divisions' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer">
+            <button @click="setSubTab('divisions')" :class="subTab === 'divisions' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'" class="px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer">
                 🏢 Kelola Divisi &amp; Tim
             </button>
             @endif
