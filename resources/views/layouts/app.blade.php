@@ -84,8 +84,8 @@
     <!-- Left Sidebar & Mobile Navigation -->
     @include('components.navbar')
 
-    <!-- Right Side Content Wrapper (Shifted right by lg:pl-64 on desktop when sidebar is open) -->
-    <div :class="sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'" class="flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200">
+    <!-- Right Side Content Wrapper (Shifted right by lg:pl-72 on desktop when sidebar is open) -->
+    <div :class="sidebarOpen ? 'lg:pl-72' : 'lg:pl-0'" class="flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200">
         
         <!-- Sticky Top Header Bar with Hamburger Button & Module Breadcrumb -->
         <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 h-16 flex items-center justify-between px-4 sm:px-6 shadow-xs select-none">
@@ -132,7 +132,7 @@
                                     {{ '@' . Auth::user()->username }}
                                 </span>
                             </div>
-                            <div class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs uppercase shadow-2xs {{ Auth::user()->role === 'superadmin' ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-300' : (Auth::user()->role === 'manager' ? 'bg-blue-600 text-white ring-2 ring-blue-300' : 'bg-[#3A7D8A] text-white ring-2 ring-teal-200') }}">
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs uppercase shadow-2xs {{ Auth::user()->role === 'superadmin' ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-300' : (Auth::user()->role === 'business_analyst' ? 'bg-indigo-600 text-white ring-2 ring-indigo-300' : (Auth::user()->role === 'manager' ? 'bg-blue-600 text-white ring-2 ring-blue-300' : 'bg-[#3A7D8A] text-white ring-2 ring-teal-200')) }}">
                                 {{ substr(Auth::user()->name, 0, 1) }}
                             </div>
                             <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition-transform duration-200" :class="openProfileMenu ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@
                             <!-- Header Info Profil -->
                             <div class="p-3 bg-gradient-to-br from-slate-50 to-slate-100/70 rounded-2xl border border-slate-100 mb-2">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm uppercase shadow-xs shrink-0 {{ Auth::user()->role === 'superadmin' ? 'bg-amber-500 text-slate-950' : (Auth::user()->role === 'manager' ? 'bg-blue-600 text-white' : 'bg-[#3A7D8A] text-white') }}">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm uppercase shadow-xs shrink-0 {{ Auth::user()->role === 'superadmin' ? 'bg-amber-500 text-slate-950' : (Auth::user()->role === 'business_analyst' ? 'bg-indigo-600 text-white' : (Auth::user()->role === 'manager' ? 'bg-blue-600 text-white' : 'bg-[#3A7D8A] text-white')) }}">
                                         {{ substr(Auth::user()->name, 0, 1) }}
                                     </div>
                                     <div class="min-w-0 flex-1">
@@ -164,8 +164,8 @@
                                         <div class="text-[10px] text-slate-500 font-mono truncate">
                                             {{ '@' . Auth::user()->username }}
                                         </div>
-                                        <div class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold {{ Auth::user()->role === 'superadmin' ? 'bg-amber-100 text-amber-800' : (Auth::user()->role === 'manager' ? 'bg-blue-100 text-blue-800' : 'bg-teal-100 text-teal-800') }}">
-                                            <span>{{ Auth::user()->role === 'superadmin' ? '👑 Superadmin' : (Auth::user()->role === 'manager' ? '👔 Manager' : '🏢 General Affair') }}</span>
+                                        <div class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold {{ Auth::user()->role === 'superadmin' ? 'bg-amber-100 text-amber-800' : (Auth::user()->role === 'business_analyst' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : (Auth::user()->role === 'manager' ? 'bg-blue-100 text-blue-800' : 'bg-teal-100 text-teal-800')) }}">
+                                            <span>{{ Auth::user()->role === 'superadmin' ? '👑 Superadmin' : (Auth::user()->role === 'business_analyst' ? '💼 Business Analyst' : (Auth::user()->role === 'manager' ? '👔 Manager' : '🏢 General Affair')) }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -267,7 +267,7 @@
         </header>
 
         <!-- Main Content Container -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full space-y-6">
+        <main :class="activeTab === 'superadmin' ? 'w-full px-4 sm:px-6 lg:px-8 pt-2 pb-6' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-3.5'" class="flex-1 w-full space-y-3 transition-all duration-150">
         
         <!-- Flash Alerts -->
         @if(session('success'))
@@ -336,7 +336,9 @@
             </div>
         @endif
 
-        @yield('content')
+        <div class="w-full">
+            @yield('content')
+        </div>
     </main>
 
     <!-- Include Footer -->

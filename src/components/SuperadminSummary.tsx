@@ -288,9 +288,9 @@ export const SuperadminSummary: React.FC<SuperadminSummaryProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3.5">
       {/* Superadmin Header Banner */}
-      <div className="bg-gradient-to-r from-[#0F1D2E] via-[#163654] to-[#2E5190] text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-white/10 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#0F1D2E] via-[#163654] to-[#2E5190] text-white rounded-2xl p-4 sm:p-5 shadow-lg border border-white/10 relative overflow-hidden">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold border border-amber-400/30">

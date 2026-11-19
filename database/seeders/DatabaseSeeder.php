@@ -44,11 +44,22 @@ class DatabaseSeeder extends Seeder
 
         // 2. Create Spatie Roles
         $superadminRole = Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $baRole = Role::firstOrCreate(['name' => 'business_analyst', 'guard_name' => 'web']);
         $managerRole = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
         $gaRole = Role::firstOrCreate(['name' => 'general_affair', 'guard_name' => 'web']);
 
         // Assign Permissions to Roles
         $superadminRole->syncPermissions(Permission::all());
+        $baRole->syncPermissions([
+            'view guidebooks',
+            'manage guidebooks',
+            'manage systems',
+            'view credentials',
+            'manage spreadsheet',
+            'manage excel',
+            'manage inventory',
+            'manage divisions',
+        ]);
         $managerRole->syncPermissions([
             'view credentials',
             'manage inventory',
@@ -72,6 +83,13 @@ class DatabaseSeeder extends Seeder
                 'username' => 'superadmin',
                 'email' => 'superadmin@syamanah.com',
                 'role' => 'superadmin',
+                'password' => Hash::make('password123'),
+            ],
+            [
+                'name' => 'Business Analyst Syamanah',
+                'username' => 'ba',
+                'email' => 'ba@syamanah.com',
+                'role' => 'business_analyst',
                 'password' => Hash::make('password123'),
             ],
             [

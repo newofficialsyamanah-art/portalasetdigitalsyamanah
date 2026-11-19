@@ -197,7 +197,13 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 w-full space-y-6">
+      <main
+        className={`w-full flex-1 transition-all ${
+          activeTab === 'superadmin'
+            ? 'px-4 sm:px-6 pt-2 pb-6 space-y-3'
+            : 'max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6'
+        }`}
+      >
         {/* Floating/Top Alert */}
         {alert.show && (
           <div

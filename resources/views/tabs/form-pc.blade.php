@@ -167,7 +167,7 @@
 </script>
 
 <!-- Tab: Form Input Laptop / PC Workstation -->
-<div x-show="activeTab === 'pc'" class="space-y-6" x-data="formPcHandler()">
+<div x-show="activeTab === 'pc'" x-cloak class="space-y-6" x-data="formPcHandler()">
     <!-- Header -->
     <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">

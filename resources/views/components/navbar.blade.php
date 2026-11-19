@@ -3,17 +3,18 @@
     $role = $user ? $user->role : 'general_affair';
     $isSuperadmin = $user && $role === 'superadmin';
     $isManager = $user && $role === 'manager';
+    $isBA = $user && ($role === 'business_analyst' || $user->hasRole('business_analyst'));
     $isGA = $user && $role === 'general_affair';
 
     // Granular capabilities (Spatie permissions with core role bypass)
-    $canSpreadsheet = $isSuperadmin || $isManager || ($user && ($user->can('manage spreadsheet') || $user->can('manage excel')));
-    $canInventory = $isSuperadmin || $isManager || $isGA || ($user && $user->can('manage inventory'));
-    $canPhones = $isSuperadmin || $isManager || $isGA || ($user && $user->can('manage inventory'));
+    $canSpreadsheet = $isSuperadmin || $isManager || $isBA || ($user && ($user->can('manage spreadsheet') || $user->can('manage excel')));
+    $canInventory = $isSuperadmin || $isManager || $isBA || $isGA || ($user && $user->can('manage inventory'));
+    $canPhones = $isSuperadmin || $isManager || $isBA || $isGA || ($user && $user->can('manage inventory'));
     $canMikrotik = $isSuperadmin || $isManager || ($user && $user->can('manage mikrotik'));
-    $canAudit = $isSuperadmin || $isManager || ($user && ($user->can('view credentials') || $user->can('manage rbac') || $user->can('manage users')));
-    $canGuides = $isSuperadmin || ($user && ($user->can('view guidebooks') || $user->can('manage guidebooks')));
+    $canAudit = $isSuperadmin || $isManager || $isBA || ($user && ($user->can('view credentials') || $user->can('manage rbac') || $user->can('manage users')));
+    $canGuides = $isSuperadmin || $isBA || ($user && ($user->can('view guidebooks') || $user->can('manage guidebooks')));
     $canSuperadmin = $isSuperadmin || ($user && ($user->can('manage users') || $user->can('manage rbac') || $user->can('manage systems') || $user->can('manage divisions')));
-    $canExcel = $isSuperadmin || $isManager || ($user && $user->can('manage excel'));
+    $canExcel = $isSuperadmin || $isManager || $isBA || ($user && $user->can('manage excel'));
 
     // Role display styling & labels
     if ($isSuperadmin) {
@@ -22,6 +23,12 @@
         $roleBorder = 'border-amber-500/30';
         $roleBg = 'bg-amber-500/10';
         $avatarBg = 'bg-amber-500 text-slate-950';
+    } elseif ($isBA) {
+        $roleLabel = '💼 Business Analyst';
+        $roleColor = 'text-indigo-300';
+        $roleBorder = 'border-indigo-500/30';
+        $roleBg = 'bg-indigo-500/10';
+        $avatarBg = 'bg-indigo-600 text-white';
     } elseif ($isManager) {
         $roleLabel = '👔 Manager';
         $roleColor = 'text-blue-300';
@@ -55,7 +62,7 @@
 <!-- UNIFIED SLIM & CLEAN LEFT SIDEBAR (Desktop & Mobile Drawer)  -->
 <!-- ============================================================ -->
 <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
-       class="fixed inset-y-0 left-0 w-64 bg-[#0F1D2E] text-white border-r border-slate-800/90 z-40 flex flex-col shadow-2xl transition-transform duration-200 ease-in-out select-none">
+       class="fixed inset-y-0 left-0 w-72 bg-[#0F1D2E] text-white border-r border-slate-800/90 z-40 flex flex-col shadow-2xl transition-transform duration-200 ease-in-out select-none">
     
     <!-- Sidebar Header: Brand & App Identity -->
     <div class="px-4 py-3.5 border-b border-slate-800/90 bg-slate-950 flex items-center justify-between gap-2.5">
@@ -88,11 +95,11 @@
     </div>
 
     <!-- Clean Navigation Links (Scrollable) -->
-    <div class="flex-1 overflow-y-auto px-3 py-4 space-y-4 text-xs scrollbar-thin scrollbar-thumb-slate-800">
+    <div class="flex-1 overflow-y-auto px-3.5 py-4 space-y-5 text-[13px] scrollbar-thin scrollbar-thumb-slate-800">
         
         <!-- SECTION 1: MASTER DATA & INVENTARIS -->
         <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2.5 mb-1.5 flex items-center gap-1.5">
+            <p class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 px-2.5 mb-2 flex items-center gap-2">
                 <span class="w-1.5 h-1.5 rounded-full bg-[#3A7D8A]"></span>
                 <span>Menu Utama</span>
             </p>
@@ -112,10 +119,10 @@
 
                 {{-- Laptop & PC (dengan Submenu Input PC & Panduan DxDiag) --}}
                 @if($canInventory)
-                    <div x-data="{ open: true }" class="space-y-0.5">
+                    <div x-data="{ open: ['inventory', 'pc'].includes(activeTab) }" x-effect="if (['inventory', 'pc'].includes(activeTab)) open = true" class="space-y-0.5">
                         <div class="flex items-center gap-1">
                             <button type="button" 
-                                    @click="setTab('inventory')" 
+                                    @click="setTab('inventory'); open = true" 
                                     :class="['inventory', 'pc'].includes(activeTab) ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-md font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium'" 
                                     class="flex-1 text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all duration-150 cursor-pointer">
                                 <div class="flex items-center gap-2.5 min-w-0">
@@ -126,8 +133,9 @@
                             </button>
                             <button type="button" 
                                     @click="open = !open" 
+                                    :aria-expanded="open"
                                     class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition cursor-pointer shrink-0" 
-                                    title="Tampilkan / Sembunyikan Submenu">
+                                    aria-label="Tampilkan atau sembunyikan submenu Laptop dan PC">
                                 <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
                         </div>
@@ -149,7 +157,7 @@
                                     <span class="text-xs">➕</span>
                                     <span class="truncate">Form Input PC</span>
                                 </div>
-                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">Pop-up</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold whitespace-nowrap">Modal</span>
                             </button>
 
                             <button type="button" 
@@ -164,10 +172,10 @@
 
                 {{-- HP Android / Akun Sales (dengan Submenu Input Akun) --}}
                 @if($canPhones)
-                    <div x-data="{ open: true }" class="space-y-0.5">
+                    <div x-data="{ open: ['phones', 'akun'].includes(activeTab) }" x-effect="if (['phones', 'akun'].includes(activeTab)) open = true" class="space-y-0.5">
                         <div class="flex items-center gap-1">
                             <button type="button" 
-                                    @click="setTab('phones')" 
+                                    @click="setTab('phones'); open = true" 
                                     :class="['phones', 'akun'].includes(activeTab) ? 'bg-gradient-to-r from-[#3A7D8A] to-[#2E5190] text-white shadow-md font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-medium'" 
                                     class="flex-1 text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all duration-150 cursor-pointer">
                                 <div class="flex items-center gap-2.5 min-w-0">
@@ -178,8 +186,9 @@
                             </button>
                             <button type="button" 
                                     @click="open = !open" 
+                                    :aria-expanded="open"
                                     class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition cursor-pointer shrink-0" 
-                                    title="Tampilkan / Sembunyikan Submenu">
+                                    aria-label="Tampilkan atau sembunyikan submenu HP dan akun">
                                 <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
                         </div>
@@ -201,7 +210,7 @@
                                     <span class="text-xs">➕</span>
                                     <span class="truncate">Form Input Akun</span>
                                 </div>
-                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">Pop-up</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold whitespace-nowrap">Modal</span>
                             </button>
                         </div>
                     </div>
@@ -245,7 +254,7 @@
         <!-- SECTION 2: OLAH DATA EXCEL -->
         @if($canExcel)
             <div class="pt-2 border-t border-slate-800/60">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-400/90 px-2.5 mb-1.5 flex items-center gap-1.5">
+                <p class="text-[11px] font-extrabold uppercase tracking-widest text-emerald-400/90 px-2.5 mb-2 flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                     <span>Olah Data Excel</span>
                 </p>
@@ -268,7 +277,7 @@
         <!-- SECTION 3: KONTROL SUPERADMIN -->
         @if($canSuperadmin)
             <div class="pt-2 border-t border-slate-800/60">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-amber-400 px-2.5 mb-1.5 flex items-center gap-1.5">
+                <p class="text-[11px] font-extrabold uppercase tracking-widest text-amber-400 px-2.5 mb-2 flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                     <span>Administrasi</span>
                 </p>
@@ -277,7 +286,7 @@
                             :class="activeTab === 'superadmin' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg ring-1 ring-amber-300/40' : 'text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 font-bold'" 
                             class="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-all duration-150 cursor-pointer">
                         <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-                        <span class="truncate">👑 Pusat Kontrol &amp; RBAC</span>
+                        <span class="truncate">Superadmin &amp; RBAC</span>
                     </button>
                 </div>
             </div>

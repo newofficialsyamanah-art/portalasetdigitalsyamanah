@@ -43,11 +43,12 @@ class DashboardController extends Controller
         $userRole = $user->role;
         $isSuperadmin = $userRole === 'superadmin';
         $isManager = $userRole === 'manager';
+        $isBA = $userRole === 'business_analyst' || $user->hasRole('business_analyst');
         $isGA = $userRole === 'general_affair';
 
         $activeTab = $request->query('tab');
         if (!$activeTab) {
-            if ($isSuperadmin || $isManager || ($user && $user->can('manage spreadsheet'))) {
+            if ($isSuperadmin || $isManager || $isBA || ($user && $user->can('manage spreadsheet'))) {
                 $activeTab = 'spreadsheet';
             } else {
                 $activeTab = 'inventory';

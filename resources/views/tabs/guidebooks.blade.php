@@ -32,11 +32,11 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h2 class="font-extrabold text-base sm:text-lg text-slate-900 leading-tight">Guide Book &amp; SOP Sistem (PDF)</h2>
-                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
+                    <!-- <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
                         <span>🔒 DRM Terproteksi</span>
-                    </span>
+                    </span> -->
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">Dokumentasi operasional &amp; manual teknis berformat PDF terenkripsi (Anti-Download, Anti-Print &amp; Anti-Screenshot)</p>
+                <p class="text-xs text-slate-500 mt-0.5">Dokumentasi operasional &amp; manual teknis berformat PDF terenkripsi </p>
             </div>
         </div>
 
@@ -623,8 +623,6 @@
                     </button>
                 </div>
             </form>
-        </div>
-    </div>
         </div>
     </div>
 </div>

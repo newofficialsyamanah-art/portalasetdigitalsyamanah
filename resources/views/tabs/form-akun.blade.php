@@ -104,7 +104,7 @@
 </script>
 
 <!-- Tab: Form Input HP & Akun Sales -->
-<div x-show="activeTab === 'akun'" class="space-y-6" x-data="formAkunHandler()">
+<div x-show="activeTab === 'akun'" x-cloak class="space-y-6" x-data="formAkunHandler()">
     <!-- Header -->
     <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">

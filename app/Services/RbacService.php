@@ -131,6 +131,7 @@ class RbacService
 
             // 3. Pastikan peran sistem inti tersedia
             $superadmin = Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+            $ba = Role::firstOrCreate(['name' => 'business_analyst', 'guard_name' => 'web']);
             $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
             $generalAffair = Role::firstOrCreate(['name' => 'general_affair', 'guard_name' => 'web']);
 
@@ -138,7 +139,42 @@ class RbacService
             $allPerms = Permission::all();
             $superadmin->syncPermissions($allPerms);
 
-            // 5. Manager memiliki izin manajerial & operasional (termasuk melihat & kelola guide book)
+            // 5. Business Analyst memiliki otoritas penuh atas SOP DRM, Sistem, Spreadsheet & Audit Kredensial
+            if ($ba->permissions()->count() === 0) {
+                $ba->syncPermissions([
+                    'view guidebooks',
+                    'manage guidebooks',
+                    'manage systems',
+                    'view credentials',
+                    'manage spreadsheet',
+                    'manage excel',
+                    'manage inventory',
+                    'manage divisions',
+                ]);
+            } else {
+                if (!$ba->hasPermissionTo('manage guidebooks')) {
+                    $ba->givePermissionTo('manage guidebooks');
+                }
+                if (!$ba->hasPermissionTo('view guidebooks')) {
+                    $ba->givePermissionTo('view guidebooks');
+                }
+            }
+
+            // Pastikan akun default Business Analyst tersedia
+            $baUser = User::firstOrCreate(
+                ['username' => 'ba'],
+                [
+                    'name' => 'Business Analyst Syamanah',
+                    'email' => 'ba@syamanah.com',
+                    'role' => 'business_analyst',
+                    'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                ]
+            );
+            if (!$baUser->hasRole('business_analyst')) {
+                $baUser->syncRoles(['business_analyst']);
+            }
+
+            // 6. Manager memiliki izin manajerial & operasional (termasuk melihat & kelola guide book)
             if ($manager->permissions()->count() === 0) {
                 $manager->syncPermissions([
                     'manage inventory',
@@ -157,7 +193,7 @@ class RbacService
                 }
             }
 
-            // 6. General Affair memiliki izin operasional inventaris & melihat panduan (view-only)
+            // 7. General Affair memiliki izin operasional inventaris & melihat panduan (view-only)
             if ($generalAffair->permissions()->count() === 0) {
                 $generalAffair->syncPermissions([
                     'manage inventory',

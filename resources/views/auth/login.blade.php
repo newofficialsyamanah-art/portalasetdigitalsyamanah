@@ -29,7 +29,7 @@
         <div class="text-center space-y-3">
             <div class="inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl shadow-sm border border-white/20">
                 <img src="/logo-syamanah.png" alt="Logo Syamanah" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
-                <span class="font-black text-[#0F1D2E] text-sm tracking-wider">SYAMANAH</span>
+                <!-- <span class="font-black text-[#0F1D2E] text-sm tracking-wider">SYAMANAH</span> -->
             </div>
             <div>
                 <h1 class="text-lg sm:text-xl font-extrabold text-white tracking-wide">ENTERPRISE ASSET MANAGEMENT</h1>
